@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="RadioImage">
+        <attr name="drawableOn" format="reference" />
+        <attr name="drawableOff" format="reference" />
+        <attr name="tintOn" format="color" />
+        <attr name="tintOff" format="color" />
+        <attr name="initialState" format="boolean" />
+    </declare-styleable>
+</resources>

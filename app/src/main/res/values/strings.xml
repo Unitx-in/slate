@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">SlateSheet</string>
+    <string name="sample_save">Sample save</string>
+    <string name="title_category">New Text</string>
+    <string name="enter_a_text">Enter a text</string>
+    <string name="hint_category_error">Here are the guidelines to enter a text</string>
+    <string name="test">Test</string>
+</resources>
