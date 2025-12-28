@@ -38,7 +38,7 @@ dependencyResolutionManagement {
 
 ```gradle
 dependencies {
-	        implementation 'com.github.Unitx-in:slate:Tag'
+	        implementation 'com.github.Unitx-in:slate:v1.0.0'
 	}
 ```
 
