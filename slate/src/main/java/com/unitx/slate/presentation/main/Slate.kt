@@ -15,9 +15,6 @@ import com.unitx.slate.presentation.controls.impl.AddNewButtonControl
 import com.unitx.slate.presentation.controls.impl.CollapseButtonControl
 import com.unitx.slate.presentation.controls.impl.SaveButtonControl
 import com.unitx.slate.presentation.controls.SlateControlComposite
-import com.unitx.slate.presentation.utilExtension.identifier
-import com.unitx.slate.presentation.utilExtension.isBuilt
-import com.unitx.slate.presentation.utilExtension.slateFlagCache
 import com.unitx.slate.presentation.behavior.SlateBehaviour
 import com.unitx.slate.presentation.helper.OverlayColor
 import com.unitx.slate.presentation.helper.Overlay
@@ -39,6 +36,8 @@ class Slate<T : Slate.ViewBinder>(
         enum class Tags(val content: String, val metaData: Map<String, Any> = mapOf()) {
             BlurAccessibility("Dismiss Bottom Sheet!")
         }
+
+        val initializationTracker = mutableMapOf<String, Boolean>()
     }
 
     interface BindingListener<T : ViewBinder> {
@@ -83,14 +82,23 @@ class Slate<T : Slate.ViewBinder>(
     private var onStateChangeObservable = SlateOnStateChangeObservable()
     private var stateTransitionStrategy: StateTransitionStrategy<T> = DefaultStateTransitionStrategy()
 
-    internal fun build(
+    private val identifier: String
+        get() = hashCode().toString()
+
+    private var isInit: Boolean
+        get() = initializationTracker[identifier] ?: false
+        set(value) {
+            initializationTracker[identifier] = value
+        }
+
+    internal fun initialize(
         config: SlateConfig,
         stateTransitionStrategy: StateTransitionStrategy<T>,
         externalCallback: BottomSheetCallback?,
         observers: List<SlateOnStateChangeObserver>
         ): Slate<T>
     {
-        if (isBuilt) {
+        if (isInit) {
             Log.i("Slate", "Slate is already built. Returning the previous instance instead of rebuilding!")
             return this
         }
@@ -113,7 +121,7 @@ class Slate<T : Slate.ViewBinder>(
         )
         initSystemLevelCallbacks()
 
-        isBuilt = true
+        isInit = true
         return this
     }
 
@@ -123,7 +131,7 @@ class Slate<T : Slate.ViewBinder>(
     }
 
     fun release() {
-        if (!isBuilt) return
+        if (!isInit) return
 
         // 1. Detach views from container
         if (bottomSheet.parent === _container) {
@@ -149,9 +157,9 @@ class Slate<T : Slate.ViewBinder>(
         _binder = null
         _slateBehaviour = null
         internalBottomSheetBehaviorCallback = null
-        isBuilt = false
+        isInit = false
 
-        slateFlagCache.remove(identifier)
+        initializationTracker.remove(identifier)
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -193,7 +201,7 @@ class Slate<T : Slate.ViewBinder>(
 
 
     private fun ensureBuilt() {
-        if (!isBuilt) throw IllegalStateException("Slate bottom sheet is not created, build() error!")
+        if (!isInit) throw IllegalStateException("Slate bottom sheet is not created, build() error!")
     }
 
     private fun addObserver(observer: SlateOnStateChangeObserver) {
@@ -302,7 +310,6 @@ class Slate<T : Slate.ViewBinder>(
                 isCollapsible = !bottomSheetBehavior.skipCollapsed,
                 onCollapse = { collapse() },
                 onExpand = { expand() },
-                onHide = { hide() }
             ))
             .attach { hide() }
     }

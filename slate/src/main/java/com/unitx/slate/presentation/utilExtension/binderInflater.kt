@@ -9,8 +9,8 @@ import com.unitx.slate.presentation.main.Slate
 /**
  * Inflates a ViewBinding and converts it to a Slate ViewBinder using reflection.
  *
- * @param B The ViewBinding type to inflate
- * @param VB The ViewBinder subclass to create
+ * @param viewBinding The ViewBinding type to inflate
+ * @param slateViewBinder The ViewBinder subclass to create
  * @param binderProvider Lambda that creates ViewBinder from inflated binding
  * @return Custom ViewBinder instance
  *
@@ -23,16 +23,16 @@ import com.unitx.slate.presentation.main.Slate
  * }
  * ```
  */
-inline fun <reified B : ViewBinding, VB : Slate.ViewBinder> View.inflateBinder(
-    crossinline binderProvider: (B) -> VB
-): VB {
+inline fun <reified viewBinding : ViewBinding, slateViewBinder : Slate.ViewBinder> View.inflateBinder(
+    crossinline binderProvider: (viewBinding) -> slateViewBinder
+): slateViewBinder {
     // Reflectively call ViewBinding's static inflate method
-    val binding = B::class.java.getMethod(
+    val binding = viewBinding::class.java.getMethod(
         "inflate",
         LayoutInflater::class.java,
         ViewGroup::class.java,
         Boolean::class.javaPrimitiveType
-    ).invoke(null, LayoutInflater.from(context), this as ViewGroup, false) as B
+    ).invoke(null, LayoutInflater.from(context), this as ViewGroup, false) as viewBinding
 
     return binderProvider(binding)
 }

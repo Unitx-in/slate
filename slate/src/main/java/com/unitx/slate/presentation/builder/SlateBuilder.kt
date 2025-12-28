@@ -93,7 +93,7 @@ open class SlateBuilder<T : Slate.ViewBinder>{
             onBackPressedDispatcher = onBackPressedDispatcher,
             bindingListener = bindingListener
         ).apply {
-            build(
+            initialize(
                 config = config,
                 stateTransitionStrategy = stateTransitionStrategy,
                 externalCallback = externalCallback,
