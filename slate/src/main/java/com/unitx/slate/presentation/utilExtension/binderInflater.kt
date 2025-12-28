@@ -3,6 +3,7 @@ package com.unitx.slate.presentation.utilExtension
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.ComponentActivity
 import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
 import com.unitx.slate.presentation.builder.SlateBuilder
@@ -38,3 +39,34 @@ inline fun <reified viewBinding : ViewBinding, slateViewBinder : Slate.ViewBinde
 
     return binderProvider(binding)
 }
+
+fun <T : Slate.ViewBinder> Fragment.SlateBuilderForFragment(
+    currentInstance: Slate<T>?,
+    onBind: (View) -> T,
+    onBindView: (T) -> Unit
+): Slate<T> {
+    return SlateBuilder<T>().build(
+        currentInstance = currentInstance,
+        hostView = requireView(),
+        lifecycleOwner = viewLifecycleOwner,
+        onBackPressedDispatcher = requireActivity().onBackPressedDispatcher,
+        onBind = onBind,
+        onBindView = onBindView
+    )
+}
+
+fun <T : Slate.ViewBinder> ComponentActivity.SlateBuilderForActivity(
+    currentInstance: Slate<T>?,
+    onBind: (View) -> T,
+    onBindView: (T) -> Unit
+): Slate<T> {
+    return SlateBuilder<T>().build(
+        currentInstance = currentInstance,
+        hostView = findViewById(android.R.id.content),
+        lifecycleOwner = this,
+        onBackPressedDispatcher = onBackPressedDispatcher,
+        onBind = onBind,
+        onBindView = onBindView
+    )
+}
+
