@@ -10,84 +10,37 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
-import com.unitx.slate.presentation.extension.blurHide
-import com.unitx.slate.presentation.extension.blurOffSet
-import com.unitx.slate.presentation.extension.blurVisible
-import com.unitx.slate.presentation.extension.appendClickListener
-import com.unitx.slate.presentation.extension.arrowDown
-import com.unitx.slate.presentation.extension.arrowUp
-import com.unitx.slate.presentation.extension.collapse
-import com.unitx.slate.presentation.extension.expand
-import com.unitx.slate.presentation.extension.slateFlagCache
-import com.unitx.slate.presentation.extension.hide
-import com.unitx.slate.presentation.extension.identifier
-import com.unitx.slate.presentation.extension.isBuilt
-import com.unitx.slate.presentation.extension.isExpanded
-import com.unitx.slate.presentation.extension.sheetCallback
+import com.unitx.slate.presentation.config.SlateConfig
+import com.unitx.slate.presentation.controls.impl.AddNewButtonControl
+import com.unitx.slate.presentation.controls.impl.CollapseButtonControl
+import com.unitx.slate.presentation.controls.impl.SaveButtonControl
+import com.unitx.slate.presentation.controls.SlateControlComposite
+import com.unitx.slate.presentation.utilExtension.identifier
+import com.unitx.slate.presentation.utilExtension.isBuilt
+import com.unitx.slate.presentation.utilExtension.slateFlagCache
+import com.unitx.slate.presentation.behavior.SlateBehaviour
 import com.unitx.slate.presentation.helper.OverlayColor
 import com.unitx.slate.presentation.helper.Overlay
 import com.unitx.slate.presentation.helper.SlatePositioning
+import com.unitx.slate.presentation.observer.SlateOnStateChangeObservable
+import com.unitx.slate.presentation.observer.SlateOnStateChangeObserver
 import com.unitx.slate.presentation.radioImg.RadioImage
+import com.unitx.slate.presentation.transition.DefaultStateTransitionStrategy
+import com.unitx.slate.presentation.transition.StateTransitionStrategy
 
-typealias onStateChangeType = (Int) -> Unit
-
-/**
- * Slate is a lifecycle-aware bottom sheet manager that handles:
- * - Bottom sheet behavior and state management
- * - Blur overlay coordination
- * - Back press handling
- * - Automatic cleanup on lifecycle destruction
- *
- * @param T The type of ViewBinder used for custom sheet content
- * @param hostView The parent container where the sheet will be attached
- * @param lifecycleOwner The lifecycle owner for automatic cleanup
- * @param onBackPressedDispatcher Dispatcher for handling back press events
- * @param bindingListener Listener for binding custom sheet content
- */
 class Slate<T : Slate.ViewBinder>(
     private val hostView: View,
     private val lifecycleOwner: LifecycleOwner,
     private val onBackPressedDispatcher: OnBackPressedDispatcher,
     private val bindingListener: BindingListener<T>
-) {
-
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // COMPANION OBJECT
-    // ═══════════════════════════════════════════════════════════════════════════════
+){
 
     companion object {
-        /** Tags for accessibility or identification purposes. */
         enum class Tags(val content: String, val metaData: Map<String, Any> = mapOf()) {
             BlurAccessibility("Dismiss Bottom Sheet!")
         }
-
-        /**
-         * Returns existing Slate instance or creates a new one if null.
-         * Useful for implementing singleton pattern in fragments/activities.
-         */
-        fun <T : ViewBinder> singleInstance(
-            currentInstance: Slate<T>?,
-            hostView: View,
-            lifecycleOwner: LifecycleOwner,
-            onBackPressedDispatcher: OnBackPressedDispatcher,
-            bindingListener: BindingListener<T>
-        ): Slate<T> {
-            return currentInstance ?: Slate(
-                hostView,
-                lifecycleOwner,
-                onBackPressedDispatcher,
-                bindingListener
-            )
-        }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // INTERFACES & OPEN CLASSES
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /**
-     * Listener interface for binding custom sheet content and configuration.
-     */
     interface BindingListener<T : ViewBinder> {
         /** Inflate and return the ViewBinder for the bottom sheet */
         fun onBindSheet(hostView: View): T
@@ -96,127 +49,79 @@ class Slate<T : Slate.ViewBinder>(
         fun onBindView(binder: T)
     }
 
-    /**
-     * Base class for custom sheet view holders.
-     * Extend this to define your sheet's UI components and configuration.
-     */
     open class ViewBinder(val rootView: View) {
-        /** Optional save button that triggers sheet hide on click */
         var setSaveBtn: ImageView? = null
-
-        /** Optional collapse/expand button with toggle state */
         var setCollapseBtn: RadioImage? = null
-
-        /** Optional "add new" button that triggers sheet hide on click */
         var setAddNewBtn: View? = null
-
-        /** Overlay background color theme (Light/Dark) */
         var setOverlayColor: OverlayColor = OverlayColor.Light
-
-        /** Optional callback for sheet state changes from binder level */
-        var onStateChangedCallbackReusable: onStateChangeType? = null
+        var onStateChangedFromBinder: ((Int) -> Unit)? = null
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PROPERTIES - CORE COMPONENTS
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /** The host container where sheet and overlay are attached */
     private var _container: ViewGroup? = null
-    val container get() = _container ?: error("Container not yet initialized. Call build() first.")
+    private val container get() = _container ?: error("Container not yet initialized. Call build() first.")
 
-    /** The blur overlay view positioned behind the sheet */
     private var _blurOverlay: View? = null
-    val blurOverlay get() = _blurOverlay ?: error("Blur overlay not yet initialized. Call build() first.")
+    private val blurOverlay get() = _blurOverlay ?: error("Blur overlay not yet initialized. Call build() first.")
 
-    /** The ViewBinder instance holding sheet configuration and views */
     private var _binder: T? = null
     val binder get() = _binder ?: error("Binder not yet initialized. Call build() first.")
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PROPERTIES - DERIVED & CONVENIENCE
-    // ═══════════════════════════════════════════════════════════════════════════════
+    private var _slateBehaviour: SlateBehaviour? = null
+    private val slateBehaviour get() = _slateBehaviour ?: error("BottomSheetFacade not initialized.")
 
-    /** The bottom sheet root view */
-    val bottomSheet get() = binder.rootView
-
-    /** The BottomSheetBehavior controlling the sheet */
-    val bottomSheetBehavior get() = BottomSheetBehavior.from(bottomSheet)
-
-    /** Optional save button from binder */
-    private val saveBtn get() = binder.setSaveBtn
-
-    /** Optional collapse button from binder */
-    val collapseBtn get() = binder.setCollapseBtn
-
-    /** Optional add new button from binder */
-    private val addNewBtn get() = binder.setAddNewBtn
-
-    /** Optional state change callback from binder */
-    private val onStateChangeBinder get() = binder.onStateChangedCallbackReusable
-
-    /** Slate-level state change callback */
-    var onStateChangeSlate: onStateChangeType = {}
-
-    /** Background overlay color configuration */
+    private val bottomSheet get() = binder.rootView
+    private val bottomSheetBehavior get() = BottomSheetBehavior.from(bottomSheet)
+    private val collapseBtn get() = binder.setCollapseBtn
+    private val onStateChangedFromBinder get() = binder.onStateChangedFromBinder
     private val overlayColor get() = binder.setOverlayColor
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PROPERTIES - LIFECYCLE & CALLBACKS
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /** Observes lifecycle for automatic cleanup */
     private lateinit var lifecycleObserver: DefaultLifecycleObserver
-
-    /** Handles back press to hide sheet */
     private lateinit var backPressedCallback: OnBackPressedCallback
-
-    /** Internal callback managing blur and arrow states */
     private var internalBottomSheetBehaviorCallback: BottomSheetCallback? = null
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PUBLIC API - LIFECYCLE METHODS
-    // ═══════════════════════════════════════════════════════════════════════════════
+    private val controlComposite = SlateControlComposite()
+    private var onStateChangeObservable = SlateOnStateChangeObservable()
+    private var stateTransitionStrategy: StateTransitionStrategy<T> = DefaultStateTransitionStrategy()
 
-    /**
-     * Builds and initializes the Slate instance for the first time.
-     * Call this once after creating a Slate object. Safe to call multiple times.
-     *
-     * Sets up:
-     * - Core variables (container, binder, blur overlay)
-     * - View attachment and content binding
-     * - System callbacks (back press, lifecycle observer)
-     *
-     * @return This Slate instance for chaining
-     * @throws IllegalStateException if build fails
-     */
-    fun build(): Slate<T> {
+    internal fun build(
+        config: SlateConfig,
+        stateTransitionStrategy: StateTransitionStrategy<T>,
+        externalCallback: BottomSheetCallback?,
+        observers: List<SlateOnStateChangeObserver>
+        ): Slate<T>
+    {
         if (isBuilt) {
             Log.i("Slate", "Slate is already built. Returning the previous instance instead of rebuilding!")
             return this
         }
 
-        initCoreVariables()
-        bindCore()
+        observers.forEach{ addObserver(it) }
+        addObserver(object :SlateOnStateChangeObserver{
+            override fun onStateChanged(state: Int) {
+                onStateChangedFromBinder?.invoke(state)
+            }
+        })
+        this.stateTransitionStrategy = stateTransitionStrategy
+
+        initCore()
+        bindViews()
+        bindUserContent()
+        bindInternalContent()
+        bindConfig(
+            config = config,
+            externalCallback = externalCallback
+        )
         initSystemLevelCallbacks()
 
         isBuilt = true
         return this
     }
 
-    /**
-     * Releases all resources held by the Slate instance.
-     * MUST be called when Slate is no longer needed (e.g., Fragment's onDestroyView).
-     *
-     * Performs cleanup:
-     * 1. Detaches views from container
-     * 2. Unregisters system callbacks (back press, lifecycle)
-     * 3. Removes bottom sheet callbacks
-     * 4. Nullifies references for garbage collection
-     * 5. Clears cache entries
-     *
-     * Prevents memory leaks and allows clean re-initialization.
-     */
+    private fun bindInternalContent() {
+        initInternalControls()
+        initInternalStateChangeCallback()
+    }
+
     fun release() {
         if (!isBuilt) return
 
@@ -234,24 +139,106 @@ class Slate<T : Slate.ViewBinder>(
         internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
         internalBottomSheetBehaviorCallback = null
 
-        // 4. Remove external sheet callback (fail-safe)
-        sheetCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
+        // Cleanup controls and observers
+        controlComposite.detach()
+        onStateChangeObservable.removeAllObservers()
 
         // 5. Nullify references for garbage collection
         _blurOverlay = null
         _container = null
         _binder = null
+        _slateBehaviour = null
+        internalBottomSheetBehaviorCallback = null
+        isBuilt = false
 
-        // 6. Clear cache entry
         slateFlagCache.remove(identifier)
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
-    // PRIVATE - INITIALIZATION
+    // PUBLIC API - STATE MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════════════
 
-    /** Initializes container, binder, and blur overlay */
-    private fun initCoreVariables() {
+    fun expand(): Slate<T> {
+        ensureBuilt()
+        binder.rootView.post {
+            slateBehaviour.expand()
+        }
+        return this
+    }
+
+    fun collapse(): Slate<T> {
+        binder.rootView.post {
+            slateBehaviour.collapse()
+        }
+        return this
+    }
+
+    fun hide(): Slate<T> {
+        binder.rootView.post {
+            slateBehaviour.hide()
+        }
+        return this
+    }
+
+    fun setState(state: Int): Slate<T> {
+        binder.rootView.post {
+            slateBehaviour.setState(state)
+        }
+        return this
+    }
+
+    val isExpanded get() = slateBehaviour.isExpanded
+    val isCollapsed get() = slateBehaviour.isCollapsed
+    val isHidden get() = slateBehaviour.isHidden
+
+
+    private fun ensureBuilt() {
+        if (!isBuilt) throw IllegalStateException("Slate bottom sheet is not created, build() error!")
+    }
+
+    private fun addObserver(observer: SlateOnStateChangeObserver) {
+        onStateChangeObservable.addObserver(observer)
+    }
+
+    fun blurOffSet(slideOffset: Float) {
+        blurOverlay.apply {
+            visibility = View.VISIBLE
+            alpha = (slideOffset * 0.6f).coerceAtLeast(0f)
+        }
+    }
+
+    fun arrowDown() {
+        collapseBtn?.setState(toggled = false, animate = false)
+    }
+
+    fun arrowUp() {
+        collapseBtn?.setState(toggled = true, animate = false)
+    }
+
+    fun blurHide() {
+        blurOverlay.animate()
+            ?.alpha(0f)
+            ?.setDuration(200)
+            ?.withEndAction {
+                blurOverlay.isClickable = false
+                blurOverlay.visibility = View.GONE
+            }
+            ?.start()
+    }
+
+    fun blurVisible() {
+        blurOverlay.apply {
+            visibility = View.VISIBLE
+            isClickable = true
+            animate().alpha(1f).setDuration(200).start()
+        }
+    }
+
+    private fun notifyStateChanged(state: Int) {
+        onStateChangeObservable.notifyStateChanged(state)
+    }
+
+    private fun initCore() {
         _container = hostView as ViewGroup
         _binder = bindingListener.onBindSheet(hostView)
         _blurOverlay = Overlay.createOverlay(
@@ -260,16 +247,9 @@ class Slate<T : Slate.ViewBinder>(
         ) {
             if (isExpanded) hide()
         }
+        _slateBehaviour = SlateBehaviour(BottomSheetBehavior.from(bottomSheet))
     }
 
-    /** Executes view binding, content binding, and configuration */
-    private fun bindCore() {
-        bindViews()
-        bindContent()
-        bindConfig()
-    }
-
-    /** Initializes and registers back press and lifecycle callbacks */
     private fun initSystemLevelCallbacks() {
         binder.rootView.post {
             backPressedCallback = createBackPressedCallback()
@@ -280,11 +260,6 @@ class Slate<T : Slate.ViewBinder>(
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PRIVATE - VIEW BINDING
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /** Attaches bottom sheet and blur overlay to container */
     private fun bindViews() {
         (bottomSheet.parent as? ViewGroup)?.removeView(bottomSheet)
         (blurOverlay.parent as? ViewGroup)?.removeView(blurOverlay)
@@ -297,17 +272,15 @@ class Slate<T : Slate.ViewBinder>(
         bottomSheet.bringToFront()
     }
 
-    /** Delegates content binding and initializes UI controls */
-    private fun bindContent() {
+    private fun bindUserContent() {
         bindingListener.onBindView(binder)
-        initCommonButtons()
-        setUpInternalStateChangedCallback()
     }
 
-    /** Configures bottom sheet positioning and keyboard handling */
-    private fun bindConfig() {
+    private fun bindConfig(config: SlateConfig, externalCallback: BottomSheetCallback?) {
         binder.rootView.post {
-            sheetCallback?.let { bottomSheetBehavior.addBottomSheetCallback(it) }
+            slateBehaviour.configure(config)
+            externalCallback?.let { slateBehaviour.addCallback(it) }
+
             val bottomSheetPaddingBottom = SlatePositioning.adjustBottomSheetPositioning(
                 bottomSheet = bottomSheet,
                 container = container
@@ -319,50 +292,37 @@ class Slate<T : Slate.ViewBinder>(
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PRIVATE - BUTTON INITIALIZATION
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /** Sets up click listeners for save, add new, and collapse buttons */
-    private fun initCommonButtons() {
-        addNewBtn?.appendClickListener({ hide() })
-        saveBtn?.appendClickListener({ hide() })
-        collapseBtn?.setOnClickListener { btn ->
-            val isCollapsible = !bottomSheetBehavior.skipCollapsed
-            if ((btn as RadioImage).isToggled && isCollapsible) collapse()
-            else if (btn.isToggled && !isCollapsible) hide()
-            else expand()
-        }
+    private fun initInternalControls() {
+        controlComposite
+            .add(SaveButtonControl(binder.setSaveBtn))
+            .add(AddNewButtonControl(binder.setAddNewBtn))
+            .add(
+                CollapseButtonControl(
+                collapseBtn = binder.setCollapseBtn,
+                isCollapsible = !bottomSheetBehavior.skipCollapsed,
+                onCollapse = { collapse() },
+                onExpand = { expand() },
+                onHide = { hide() }
+            ))
+            .attach { hide() }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PRIVATE - STATE MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /** Manages blur visibility, arrow states, and state change callbacks */
-    private fun setUpInternalStateChangedCallback() {
+    private fun initInternalStateChangeCallback() {
         internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
         internalBottomSheetBehaviorCallback = object : BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
-                val runStateChangeCallback = fun(state: Int) {
-                    onStateChangeBinder?.invoke(state)
-                    onStateChangeSlate.invoke(state)
-                }
-
                 when (newState) {
                     BottomSheetBehavior.STATE_EXPANDED -> {
-                        arrowDown()
-                        blurVisible()
-                        runStateChangeCallback(BottomSheetBehavior.STATE_EXPANDED)
+                        stateTransitionStrategy.onExpanded(this@Slate)
+                        notifyStateChanged(BottomSheetBehavior.STATE_EXPANDED)
                     }
                     BottomSheetBehavior.STATE_COLLAPSED -> {
-                        arrowUp()
-                        blurHide()
-                        runStateChangeCallback(BottomSheetBehavior.STATE_COLLAPSED)
+                        stateTransitionStrategy.onCollapsed(this@Slate)
+                        notifyStateChanged(BottomSheetBehavior.STATE_COLLAPSED)
                     }
                     BottomSheetBehavior.STATE_HIDDEN -> {
-                        blurHide()
-                        runStateChangeCallback(BottomSheetBehavior.STATE_HIDDEN)
+                        stateTransitionStrategy.onHidden(this@Slate)
+                        notifyStateChanged(BottomSheetBehavior.STATE_HIDDEN)
                     }
                     BottomSheetBehavior.STATE_DRAGGING,
                     BottomSheetBehavior.STATE_SETTLING,
@@ -371,17 +331,12 @@ class Slate<T : Slate.ViewBinder>(
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                blurOffSet(slideOffset)
+                stateTransitionStrategy.onSlide(this@Slate, slideOffset)
             }
         }
         internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.addBottomSheetCallback(it) }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PRIVATE - CALLBACK FACTORIES
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /** Creates back press callback that hides sheet or delegates to next handler */
     private fun createBackPressedCallback() = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
             if (bottomSheetBehavior.state != BottomSheetBehavior.STATE_HIDDEN) {
@@ -396,7 +351,6 @@ class Slate<T : Slate.ViewBinder>(
         }
     }
 
-    /** Creates lifecycle observer that auto-releases Slate on destroy */
     private fun createOwnerLifecycleObserver() = object : DefaultLifecycleObserver {
         override fun onDestroy(owner: LifecycleOwner) {
             super.onDestroy(owner)
@@ -404,16 +358,10 @@ class Slate<T : Slate.ViewBinder>(
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // PRIVATE - CALLBACK REGISTRATION
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    /** Registers back press callback with dispatcher */
     private fun registerBackPressedCallback() {
         onBackPressedDispatcher.addCallback(lifecycleOwner, backPressedCallback)
     }
 
-    /** Registers lifecycle observer for automatic cleanup */
     private fun registerOwnerLifecycleAwareness() {
         lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
     }

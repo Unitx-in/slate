@@ -1,11 +1,9 @@
 package com.unitx.slatesheet
 
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.core.content.ContextCompat
-import com.unitx.slate.presentation.extension.appendClickListener
-import com.unitx.slate.presentation.extension.inflateBinder
+import com.unitx.slate.presentation.utilExtension.appendClickListener
+import com.unitx.slate.presentation.utilExtension.inflateBinder
 import com.unitx.slate.presentation.main.Slate
 import com.unitx.slatesheet.databinding.SlateTesterCreateTextBinding
 

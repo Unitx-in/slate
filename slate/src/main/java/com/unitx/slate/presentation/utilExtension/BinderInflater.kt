@@ -1,4 +1,4 @@
-package com.unitx.slate.presentation.extension
+package com.unitx.slate.presentation.utilExtension
 
 import android.view.LayoutInflater
 import android.view.View

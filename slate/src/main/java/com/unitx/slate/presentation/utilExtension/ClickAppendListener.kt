@@ -1,4 +1,4 @@
-package com.unitx.slate.presentation.extension
+package com.unitx.slate.presentation.utilExtension
 
 import android.view.View
 import com.unitx.slate.R

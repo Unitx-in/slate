@@ -1,18 +1,13 @@
 package com.unitx.slatesheet
 
 import android.os.Bundle
-import android.util.Log
-import android.view.View
-import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.android.material.button.MaterialButton
-import com.unitx.slate.presentation.extension.default
-import com.unitx.slate.presentation.extension.expand
 import com.unitx.slate.presentation.main.Slate
+import com.unitx.slate.presentation.builder.SlateBuilder
 import com.unitx.slatesheet.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -46,7 +41,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setUpAddCategorySlate() {
-        _slateAddCategory = Slate.singleInstance(
+        _slateAddCategory = SlateBuilder<BinderAddCategory.ViewBinder>()
+            .build(
             currentInstance = _slateAddCategory,
             hostView = binding.main,
             lifecycleOwner = this,
@@ -57,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
                 }
             })
-        ).build().default().expand()
+        )
     }
 
     override fun onDestroy() {
