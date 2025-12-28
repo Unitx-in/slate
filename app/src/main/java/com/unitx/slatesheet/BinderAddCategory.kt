@@ -20,9 +20,11 @@ class BinderAddCategory(
             sheetBinding.apply {
                 setCollapseBtn = null
                 setSaveBtn = bCtIvSave
+
                 bCtTvName.text = ContextCompat.getString(rootView.context, R.string.title_category)
                 bCtEtName.hint = ContextCompat.getString(rootView.context, R.string.enter_a_text)
                 bCtTvDescription.text = ContextCompat.getString(rootView.context, R.string.hint_category_error)
+
 
                 bCtIvSave.appendClickListener({
                     onBinderAddCategoryClickListener.onSave(bCtEtName.text.toString())

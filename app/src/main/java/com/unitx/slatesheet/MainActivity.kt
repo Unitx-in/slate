@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.unitx.slate.presentation.main.Slate
 import com.unitx.slate.presentation.builder.SlateBuilder
 import com.unitx.slatesheet.databinding.ActivityMainBinding
@@ -42,6 +43,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun setUpAddCategorySlate() {
         _slateAddCategory = SlateBuilder<BinderAddCategory.ViewBinder>()
+            .onStateChange { state->
+                when (state) {
+                    BottomSheetBehavior.STATE_EXPANDED -> {
+                        // Handle expanded
+                    }
+                    BottomSheetBehavior.STATE_HIDDEN -> {
+                        // Handle hidden
+                    }
+                }
+            }
+            .addObserver(
+
+            )
             .build(
             currentInstance = _slateAddCategory,
             hostView = binding.main,
