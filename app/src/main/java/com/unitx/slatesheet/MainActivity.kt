@@ -53,9 +53,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            .addObserver(
-
-            )
             .build(
             currentInstance = _slateAddCategory,
             hostView = binding.main,
