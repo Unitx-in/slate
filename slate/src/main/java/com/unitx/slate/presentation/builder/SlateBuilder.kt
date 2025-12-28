@@ -78,20 +78,23 @@ open class SlateBuilder<T : Slate.ViewBinder>{
         })
     }
 
-
     fun build(
         currentInstance: Slate<T>?,
         hostView: View,
         lifecycleOwner: LifecycleOwner,
         onBackPressedDispatcher: OnBackPressedDispatcher,
-        bindingListener: Slate.BindingListener<T>
+        onBind: (hostView: View) -> T,
+        onBindView: (T) -> Unit,
     ): Slate<T> {
         return instance(
             currentInstance = currentInstance,
             hostView = hostView,
             lifecycleOwner = lifecycleOwner,
             onBackPressedDispatcher = onBackPressedDispatcher,
-            bindingListener = bindingListener
+            bindingListener = object : Slate.BindingListener<T> {
+                override fun onBindSheet(hostView: View): T = onBind(hostView)
+                override fun onBindView(binder: T) = onBindView(binder)
+            }
         ).apply {
             initialize(
                 config = config,

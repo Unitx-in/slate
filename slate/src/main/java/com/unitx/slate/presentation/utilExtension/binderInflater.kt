@@ -38,20 +38,3 @@ inline fun <reified viewBinding : ViewBinding, slateViewBinder : Slate.ViewBinde
 
     return binderProvider(binding)
 }
-
-inline fun <reified T : Slate.ViewBinder> Fragment.SlateCreator(
-    currentInstance: Slate<T>?,
-    noinline onBind: (hostView: View) -> T,
-    noinline onBindView: (T) -> Unit
-): Slate<T> {
-    return SlateBuilder<T>().build(
-        currentInstance = currentInstance,
-        hostView = requireView(),
-        lifecycleOwner = viewLifecycleOwner,
-        onBackPressedDispatcher = requireActivity().onBackPressedDispatcher,
-        bindingListener = object : Slate.BindingListener<T> {
-            override fun onBindSheet(hostView: View): T = onBind(hostView)
-            override fun onBindView(binder: T) = onBindView(binder)
-        }
-    )
-}

@@ -91,7 +91,7 @@ class Slate<T : Slate.ViewBinder>(
             initializationTracker[identifier] = value
         }
 
-    internal fun initialize(
+    fun initialize(
         config: SlateConfig,
         stateTransitionStrategy: StateTransitionStrategy<T>,
         externalCallback: BottomSheetCallback?,

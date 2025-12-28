@@ -1,6 +1,7 @@
 package com.unitx.slatesheet
 
 import android.os.Bundle
+import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -9,14 +10,16 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.unitx.slate.presentation.main.Slate
 import com.unitx.slate.presentation.builder.SlateBuilder
+import com.unitx.slate.presentation.utilExtension.inflateBinder
 import com.unitx.slatesheet.databinding.ActivityMainBinding
+import com.unitx.slatesheet.databinding.SlateTesterCreateTextBinding
 
 class MainActivity : AppCompatActivity() {
 
     private var _binding : ActivityMainBinding? = null
     private val binding get() = _binding!!
 
-    private var _slateAddCategory : Slate<BinderAddCategory.ViewBinder>? = null
+    private var _slateAddCategory : Slate<BinderAddCategory>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
@@ -42,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setUpAddCategorySlate() {
-        _slateAddCategory = SlateBuilder<BinderAddCategory.ViewBinder>()
+        _slateAddCategory = SlateBuilder<BinderAddCategory>()
             .onStateChange { state->
                 when (state) {
                     BottomSheetBehavior.STATE_EXPANDED -> {
@@ -54,17 +57,21 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .build(
-            currentInstance = _slateAddCategory,
-            hostView = binding.main,
-            lifecycleOwner = this,
-            onBackPressedDispatcher = onBackPressedDispatcher,
-            bindingListener = BinderAddCategory(object :
-                BinderAddCategory.OnBinderAddCategoryClickListener {
-                override fun onSave(categoryName: String) {
+                currentInstance = _slateAddCategory,
+                hostView = binding.main,
+                lifecycleOwner = this,
+                onBackPressedDispatcher = onBackPressedDispatcher,
+                onBind = { hostView-> hostView.inflateBinder<SlateTesterCreateTextBinding, BinderAddCategory> { BinderAddCategory(it) }},
+                onBindView = { binder->
+                    binder.bind(
+                        object : BinderAddCategory.OnBinderAddCategoryClickListener {
+                            override fun onSave(categoryName: String) {
 
-                }
-            })
-        )
+                            }
+                        }
+                    )
+                },
+            )
     }
 
     override fun onDestroy() {
