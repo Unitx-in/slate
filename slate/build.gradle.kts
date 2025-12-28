@@ -38,6 +38,9 @@ android {
     }
 }
 
+group = "com.github.Unitx-in"
+version = "1.0.0"
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
