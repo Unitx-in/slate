@@ -26,21 +26,20 @@ Add it in your root `settings.gradle` or `build.gradle`:
 
 ```gradle
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
-    }
-}
+		repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+		repositories {
+			mavenCentral()
+			maven { url 'https://jitpack.io' }
+		}
+	}
 ```
 
 ### Step 2: Add the dependency
 
 ```gradle
 dependencies {
-    implementation 'com.github.Unitx-in:slate:1.0.0'
-}
+	        implementation 'com.github.Unitx-in:slate:Tag'
+	}
 ```
 
 ### Basic Usage
