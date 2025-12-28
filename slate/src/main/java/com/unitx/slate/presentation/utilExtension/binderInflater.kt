@@ -39,7 +39,7 @@ inline fun <reified viewBinding : ViewBinding, slateViewBinder : Slate.ViewBinde
     return binderProvider(binding)
 }
 
-inline fun <reified T : Slate.ViewBinder> Fragment.slateSetUp(
+inline fun <reified T : Slate.ViewBinder> Fragment.SlateCreator(
     currentInstance: Slate<T>?,
     noinline onBind: (hostView: View) -> T,
     noinline onBindView: (T) -> Unit
