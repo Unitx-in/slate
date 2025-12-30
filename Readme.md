@@ -1,11 +1,14 @@
 # Slate - Lifecycle-Aware Bottom Sheet Manager
 
-[![](https://jitpack.io/v/YOUR_USERNAME/Slate.svg)](https://jitpack.io/#YOUR_USERNAME/Slate)
-[![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=21)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
 A powerful, lifecycle-aware bottom sheet manager for Android that simplifies bottom sheet
 implementation with built-in blur overlays, state management, and automatic cleanup.
+
+## 📱 Screenshots
+
+|                                          |                                          |                                            |
+|:----------------------------------------:|:----------------------------------------:|:------------------------------------------:|
+| ![](slate/src/main/res/drawable/one.png) | ![](slate/src/main/res/drawable/two.png) | ![](slate/src/main/res/drawable/three.png) |
+
 
 ## ✨ Features
 
