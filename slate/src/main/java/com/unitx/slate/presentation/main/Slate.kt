@@ -85,7 +85,6 @@ class Slate<T : Slate.ViewBinder>(
     private var isInit: Boolean
         get() = initializationTracker[identifier] ?: false
         set(value) {
-            if (value) bottomSheet.visibility = View.VISIBLE
             initializationTracker[identifier] = value
         }
 
@@ -122,7 +121,6 @@ class Slate<T : Slate.ViewBinder>(
             externalCallback = externalCallback
         )
         bindSystemLevelCallbacks()
-
         isInit = true
         return this
     }
@@ -177,6 +175,7 @@ class Slate<T : Slate.ViewBinder>(
                 bottomSheet = bottomSheet,
                 bottomSheetPaddingBottom = bottomSheetPaddingBottom
             )
+            bottomSheet.visibility = View.VISIBLE
         }
     }
 
