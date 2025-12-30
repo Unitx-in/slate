@@ -415,6 +415,7 @@ Slate uses multiple design patterns for clean, maintainable code:
 | Method                              | Description                           |
 |-------------------------------------|---------------------------------------|
 | `peekHeight(Int)`                   | Height when collapsed (default: 0)    |
+| `initialState(Int)`                 | Initial state (default: STATE_HIDDEN) |
 | `fitToContents(Boolean)`            | Fit to content height (default: true) |
 | `hideable(Boolean)`                 | Can be hidden (default: true)         |
 | `skipCollapsed(Boolean)`            | Skip collapsed state (default: false) |
@@ -425,6 +426,7 @@ Slate uses multiple design patterns for clean, maintainable code:
 | `addObserver(Observer)`             | Add state change observer             |
 | `onStateChange(Lambda)`             | Simple state change callback          |
 | `build(...)`                        | Build and initialize Slate instance   |
+
 
 ### Slate Methods
 

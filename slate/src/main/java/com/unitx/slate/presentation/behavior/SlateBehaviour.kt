@@ -29,6 +29,7 @@ class SlateBehaviour(private val behavior: BottomSheetBehavior<View>) {
     val currentState get() = behavior.state
 
     fun configure(config: SlateConfig) {
+        behavior.state = config.initialState
         behavior.peekHeight = config.peekHeight
         behavior.isFitToContents = config.isFitToContents
         behavior.isHideable = config.isHideable

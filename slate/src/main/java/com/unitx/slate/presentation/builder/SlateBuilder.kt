@@ -3,6 +3,7 @@ package com.unitx.slate.presentation.builder
 import android.view.View
 import androidx.activity.OnBackPressedDispatcher
 import androidx.lifecycle.LifecycleOwner
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
 import com.unitx.slate.presentation.config.SlateConfig
 import com.unitx.slate.presentation.main.Slate
@@ -56,6 +57,10 @@ class SlateBuilder<T : Slate.ViewBinder>{
 
     fun halfExpandedRatio(ratio: Float) = apply {
         config = config.copy(halfExpandedRatio = ratio)
+    }
+
+    fun initialState(state: Int) {
+        config = config.copy(initialState = state)
     }
 
     fun stateTransitionStrategy(strategy: StateTransitionStrategy<T>) = apply {
