@@ -2,7 +2,7 @@ package com.unitx.slate.presentation.transition
 
 import com.unitx.slate.presentation.main.Slate
 
-class DefaultStateTransitionStrategy <T: Slate.ViewBinder>: StateTransitionStrategy<T> {
+internal class DefaultStateTransitionStrategy <T: Slate.ViewBinder>: StateTransitionStrategy<T> {
     override fun onExpanded(slate: Slate<T>) {
         slate.arrowDown()
         slate.blurVisible()

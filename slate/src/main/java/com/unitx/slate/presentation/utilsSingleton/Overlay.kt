@@ -7,7 +7,7 @@ import com.unitx.slate.presentation.main.Slate.Companion.Tags
 import com.unitx.slate.presentation.config.OverlayColor
 
 
-object Overlay {
+internal object Overlay {
     fun createOverlay(
         context: Context,
         overlayColor: OverlayColor,

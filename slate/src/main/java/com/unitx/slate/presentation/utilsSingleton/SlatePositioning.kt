@@ -6,7 +6,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 
-object SlatePositioning {
+internal object SlatePositioning {
     fun adjustBottomSheetPositioning(bottomSheet: View, container: ViewGroup): Int {
         val screenHeight = bottomSheet.context.resources.displayMetrics.heightPixels
         val hostViewHeight = container.height

@@ -3,7 +3,6 @@ package com.unitx.slate.presentation.builder
 import android.view.View
 import androidx.activity.OnBackPressedDispatcher
 import androidx.lifecycle.LifecycleOwner
-import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
 import com.unitx.slate.presentation.config.SlateConfig
 import com.unitx.slate.presentation.main.Slate

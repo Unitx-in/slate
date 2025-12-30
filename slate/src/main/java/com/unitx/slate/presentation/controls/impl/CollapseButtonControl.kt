@@ -5,7 +5,7 @@ import com.unitx.slate.presentation.radioImg.RadioImage
 import com.unitx.slate.presentation.utilExtension.appendClickListener
 import com.unitx.slate.presentation.utilExtension.clearAppendedClickListeners
 
-class CollapseButtonControl(
+internal class CollapseButtonControl(
     private val collapseBtn: RadioImage?,
     private val isCollapsible: Boolean,
     private val onCollapse: () -> Unit,

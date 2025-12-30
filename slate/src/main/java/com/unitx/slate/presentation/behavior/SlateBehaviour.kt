@@ -5,7 +5,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
 import com.unitx.slate.presentation.config.SlateConfig
 
-class SlateBehaviour(private val behavior: BottomSheetBehavior<View>) {
+internal class SlateBehaviour(private val behavior: BottomSheetBehavior<View>) {
 
     fun expand() {
         behavior.state = BottomSheetBehavior.STATE_EXPANDED

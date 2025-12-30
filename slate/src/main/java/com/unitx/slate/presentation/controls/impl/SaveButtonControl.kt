@@ -5,7 +5,7 @@ import com.unitx.slate.presentation.controls.SlateControl
 import com.unitx.slate.presentation.utilExtension.appendClickListener
 import com.unitx.slate.presentation.utilExtension.clearAppendedClickListeners
 
-class SaveButtonControl(private val saveBtn: ImageView?) : SlateControl {
+internal class SaveButtonControl(private val saveBtn: ImageView?) : SlateControl {
     override fun attach(onHide: () -> Unit) {
         saveBtn?.appendClickListener ({ onHide() } )
     }

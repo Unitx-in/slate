@@ -5,7 +5,7 @@ import com.unitx.slate.presentation.controls.SlateControl
 import com.unitx.slate.presentation.utilExtension.appendClickListener
 import com.unitx.slate.presentation.utilExtension.clearAppendedClickListeners
 
-class AddNewButtonControl(private val addNewBtn: View?) : SlateControl {
+internal class AddNewButtonControl(private val addNewBtn: View?) : SlateControl {
     override fun attach(onHide: () -> Unit) {
         addNewBtn?.appendClickListener ({ onHide() } )
     }
