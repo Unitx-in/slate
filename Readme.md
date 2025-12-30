@@ -47,30 +47,29 @@ dependencies {
 
 ```kotlin
 class MyFragment : Fragment() {
-    private var _slate: Slate<Binder>? = null
+    private var _slateAddCategory : Slate<BinderAddCategory>? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Quick Way
-        
-        _slate = SlateBuilderForFragment(
-            currentInstance = _slate,
+
+        _slateAddCategory = SlateBuilderForFragment(
+            currentInstance = _slateAddCategory,
             onBind = { hostView ->
-                hostView.inflateBinder<BottomSheetLayoutBinding, Binder> { Binder(it) }
+                hostView.inflateBinder<BSheetCreateTextBinding, BinderAddCategory> { BinderAddCategory(it) }
             },
-            onBindView = {
-                it.bind(object : Binder.OnBinderClickListener{
-                    override fun onCategorySave(categoryName: String) {
-                        TODO("Not yet implemented")
-                    }
-                })
+            onBindView = { binder ->
+                binder.bind(binder.rootView.context) { categoryName->
+                    vmUser.onEvent(UserEvent.SaveNewCategory(categoryName))
+                    flagCreatedCategoryAutoSelected = true
+                }
             }
-        )
+        ).expand()
         
         // With custom configuration
 
-        _slate = SlateBuilder<Binder>()
+        _slateAddCategory = SlateBuilder<BinderAddCategory>()
             .peekHeight(200)
             .hideable(true)
             .draggable(true)
@@ -80,20 +79,23 @@ class MyFragment : Fragment() {
             lifecycleOwner = viewLifecycleOwner,
             onBackPressedDispatcher = requireActivity().onBackPressedDispatcher,
             onBind = { hostView ->
-                hostView.inflateBinder<BottomSheetLayoutBinding, Binder> { Binder(it) }
+                hostView.inflateBinder<BSheetCreateTextBinding, BinderAddCategory> { BinderAddCategory(it) }
             },
-            onBindView = {
-                it.bind(object : Binder.OnBinderClickListener{
-                    override fun onCategorySave(categoryName: String) {
-                        TODO("Not yet implemented")
-                    }
-                })
+            onBindView = { binder ->
+                binder.bind(binder.rootView.context) { categoryName->
+                    vmUser.onEvent(UserEvent.SaveNewCategory(categoryName))
+                    flagCreatedCategoryAutoSelected = true
+                }
             }
         ).expand()
     }
 
     override fun onDestroy() {
-        _slate = null
+        // Even though it releases the resources with fragment onDestroyView(), but for the safer side. 
+        // Personally, i don't write it.
+        _slateAddCategory?.release()
+
+        _slateAddCategory = null // This is important. You should always do it!
     }
 }
 ```
@@ -101,27 +103,30 @@ class MyFragment : Fragment() {
 ### Define Your ViewBinder
 
 ```kotlin
-class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
-    fun bind(){
-        binding.apply {
-            
-            setSaveBtn = bCtIvSave
-            setCollapseBtn = bCtIvCollapse
-            setAddNewBtn = bCtIvAddNew
+class BinderAddCategory(private val sheetBinding: BSheetCreateTextBinding) : Slate.ViewBinder(sheetBinding.root) {
+    fun interface OnBinderAddCategoryClickListener{
+        fun onCategorySave(categoryName: String)
+    }
 
-            onStateChangedFromBinder = { state: Int->
-                when (state) {
-                    BottomSheetBehavior.STATE_EXPANDED -> {
-                        // Handle expanded
-                    }
-                    BottomSheetBehavior.STATE_HIDDEN -> {
-                        // Handle hidden
-                    }
-                }
+    fun bind(context: Context, onBinderAddCategoryClickListener: OnBinderAddCategoryClickListener) {
+        sheetBinding.apply {
+            setCollapseBtn = null
+            setSaveBtn = bCtIvSave
+            onStateChangedFromBinder = { state ->
+                // Handle state changes
             }
             
+            bCtTvName.text = ContextCompat.getString(context, R.string.title_category)
+            bCtEtName.hint = ContextCompat.getString(context, R.string.desc_category)
+            bCtTvDescription.text = ContextCompat.getString(context, R.string.hint_category_error)
+            bTvSignalError.text = context.getString(R.string.signal_init_range, 0, LiveInputRange.CATEGORY_RANGE.last)
+            
+                // ...
+                // More code as required
+                // ...
+
             bCtIvSave.appendClickListener({
-                onBinderClickListener.onSave(bCtEtName.text.toString())
+                onBinderAddCategoryClickListener.onCategorySave(bCtEtName.text.toString())
                 bCtEtName.text?.clear()
             })
         }
@@ -134,6 +139,8 @@ class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(B
 ### 1. Basic Configuration
 
 ```kotlin
+private var slate : Slate<Binder>? = null
+
 val slate = SlateBuilder<Binder>()
     .peekHeight(300)                    // Height when collapsed
     .fitToContents(true)                // Fit to content height
@@ -419,6 +426,7 @@ Slate uses multiple design patterns for clean, maintainable code:
 
 ```kotlin
 override fun onDestroyView() {
+    slate?.release() // Optional
     slate = null
     super.onDestroyView()
 }
@@ -468,24 +476,6 @@ slate = SlateBuilder<Binder>()
 SlateBuilder<Binder>()
     .onStateChange { state -> /* ... */ }  // ← Before build()
     .build(...)
-```
-
-## 📄 License
-
-```
-Copyright 2025 [Navneet/Unitx]
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 ```
 
 ## 🤝 Contributing
