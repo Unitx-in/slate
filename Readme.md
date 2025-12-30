@@ -412,20 +412,23 @@ Slate uses multiple design patterns for clean, maintainable code:
 
 ### SlateBuilder Methods
 
-| Method                              | Description                           |
-|-------------------------------------|---------------------------------------|
-| `peekHeight(Int)`                   | Height when collapsed (default: 0)    |
-| `initialState(Int)`                 | Initial state (default: STATE_HIDDEN) |
-| `fitToContents(Boolean)`            | Fit to content height (default: true) |
-| `hideable(Boolean)`                 | Can be hidden (default: true)         |
-| `skipCollapsed(Boolean)`            | Skip collapsed state (default: false) |
-| `draggable(Boolean)`                | User can drag (default: true)         |
-| `halfExpandedRatio(Float)`          | Half-expanded ratio (default: 0.5f)   |
-| `stateTransitionStrategy(Strategy)` | Custom transition strategy            |
-| `bottomSheetCallback(Callback)`     | External BottomSheet callback         |
-| `addObserver(Observer)`             | Add state change observer             |
-| `onStateChange(Lambda)`             | Simple state change callback          |
-| `build(...)`                        | Build and initialize Slate instance   |
+| Method                              | Description                                |
+|-------------------------------------|--------------------------------------------|
+| `peekHeight(Int)`                   | Height when collapsed (default: 0)         |
+| `initialState(Int)`                 | Initial state (default: STATE_HIDDEN)      |
+| `fitToContents(Boolean)`            | Fit to content height (default: true)      |
+| `hideable(Boolean)`                 | Can be hidden (default: true)              |
+| `skipCollapsed(Boolean)`            | Skip collapsed state (default: false)      |
+| `draggable(Boolean)`                | User can drag (default: true)              |
+| `halfExpandedRatio(Float)`          | Half-expanded ratio (default: 0.5f)        |
+| `stateTransitionStrategy(Strategy)` | Custom transition strategy                 |
+| `bottomSheetCallback(Callback)`     | External BottomSheet callback              |
+| `addObserver(Observer)`             | Add state change observer                  |
+| `onStateChange(Lambda)`             | Simple state change callback               |
+| `build(...)`                        | Build and initialize Slate instance        |
+| `maxWidth(Int)`                     | Maximum width (default: -1, no limit)      |
+| `maxHeight(Int)`                    | Maximum height (default: -1, no limit)     |
+| `expandedOffset(Int)`               | Offset from top when expanded (default: 0) |
 
 
 ### Slate Methods

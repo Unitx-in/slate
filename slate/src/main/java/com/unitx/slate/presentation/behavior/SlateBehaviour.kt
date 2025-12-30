@@ -36,6 +36,9 @@ class SlateBehaviour(private val behavior: BottomSheetBehavior<View>) {
         behavior.skipCollapsed = config.skipCollapsed
         behavior.isDraggable = config.draggable
         behavior.halfExpandedRatio = config.halfExpandedRatio
+        behavior.maxWidth = config.maxWidth
+        behavior.maxHeight = config.maxHeight
+        behavior.expandedOffset = config.expandedOffset
     }
 
     fun addCallback(callback: BottomSheetCallback) {

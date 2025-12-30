@@ -35,6 +35,18 @@ class SlateBuilder<T : Slate.ViewBinder>{
     private var externalCallback: BottomSheetCallback? = null
     private val observers = mutableListOf<SlateOnStateChangeObserver>()
 
+    fun maxWidth(width: Int) = apply {
+        config = config.copy(maxWidth = width)
+    }
+
+    fun maxHeight(height: Int) = apply {
+        config = config.copy(maxHeight = height)
+    }
+
+    fun expandedOffset(offset: Int) = apply {
+        config = config.copy(expandedOffset = offset)
+    }
+
     fun peekHeight(height: Int) = apply {
         config = config.copy(peekHeight = height)
     }

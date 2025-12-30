@@ -9,5 +9,8 @@ data class SlateConfig(
     val isHideable: Boolean = true,
     val skipCollapsed: Boolean = false,
     val draggable: Boolean = true,
-    val halfExpandedRatio: Float = 0.5f
+    val halfExpandedRatio: Float = 0.5f,
+    val maxWidth: Int = -1,
+    val maxHeight: Int = -1,
+    val expandedOffset: Int = 0,
 )
