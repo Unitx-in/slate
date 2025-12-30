@@ -16,9 +16,9 @@ import com.unitx.slate.presentation.controls.impl.CollapseButtonControl
 import com.unitx.slate.presentation.controls.impl.SaveButtonControl
 import com.unitx.slate.presentation.controls.SlateControlComposite
 import com.unitx.slate.presentation.behavior.SlateBehaviour
-import com.unitx.slate.presentation.helper.OverlayColor
-import com.unitx.slate.presentation.helper.Overlay
-import com.unitx.slate.presentation.helper.SlatePositioning
+import com.unitx.slate.presentation.config.OverlayColor
+import com.unitx.slate.presentation.utilsSingleton.Overlay
+import com.unitx.slate.presentation.utilsSingleton.SlatePositioning
 import com.unitx.slate.presentation.observer.SlateOnStateChangeObservable
 import com.unitx.slate.presentation.observer.SlateOnStateChangeObserver
 import com.unitx.slate.presentation.radioImg.RadioImage
@@ -41,10 +41,7 @@ class Slate<T : Slate.ViewBinder>(
     }
 
     interface BindingListener<T : ViewBinder> {
-        /** Inflate and return the ViewBinder for the bottom sheet */
         fun onBindSheet(hostView: View): T
-
-        /** Bind data and configure views in the sheet */
         fun onBindView(binder: T)
     }
 
@@ -88,10 +85,15 @@ class Slate<T : Slate.ViewBinder>(
     private var isInit: Boolean
         get() = initializationTracker[identifier] ?: false
         set(value) {
+            if (value) bottomSheet.visibility = View.VISIBLE
             initializationTracker[identifier] = value
         }
 
-    fun initialize(
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MAIN LEVEL
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    internal fun initialize(
         config: SlateConfig,
         stateTransitionStrategy: StateTransitionStrategy<T>,
         externalCallback: BottomSheetCallback?,
@@ -103,15 +105,15 @@ class Slate<T : Slate.ViewBinder>(
             return this
         }
 
-        observers.forEach{ addObserver(it) }
-        addObserver(object :SlateOnStateChangeObserver{
+        observers.forEach{ doAddObserver(it) }
+        doAddObserver(object :SlateOnStateChangeObserver{
             override fun onStateChanged(state: Int) {
                 onStateChangedFromBinder?.invoke(state)
             }
         })
         this.stateTransitionStrategy = stateTransitionStrategy
 
-        initCore()
+        bindCore()
         bindViews()
         bindUserContent()
         bindInternalContent()
@@ -119,55 +121,188 @@ class Slate<T : Slate.ViewBinder>(
             config = config,
             externalCallback = externalCallback
         )
-        initSystemLevelCallbacks()
+        bindSystemLevelCallbacks()
 
         isInit = true
         return this
     }
 
-    private fun bindInternalContent() {
-        initInternalControls()
-        initInternalStateChangeCallback()
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // INIT LEVEL BIND FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    private fun bindCore() {
+        _container = hostView as ViewGroup
+        _binder = bindingListener.onBindSheet(hostView)
+        _blurOverlay = Overlay.createOverlay(
+            context = bottomSheet.context,
+            overlayColor = overlayColor,
+        ) {
+            if (isExpanded) hide()
+        }
+        _slateBehaviour = SlateBehaviour(BottomSheetBehavior.from(bottomSheet))
     }
 
-    fun release() {
-        if (!isInit) return
+    private fun bindViews() {
+        (bottomSheet.parent as? ViewGroup)?.removeView(bottomSheet)
+        (blurOverlay.parent as? ViewGroup)?.removeView(blurOverlay)
 
-        // 1. Detach views from container
-        if (bottomSheet.parent === _container) {
-            _blurOverlay?.let { _container?.removeView(it) }
-            _container?.removeView(bottomSheet)
+        // For the not configured view visibility blink!
+        bottomSheet.visibility = View.INVISIBLE
+
+        container.addView(bottomSheet)
+        container.addView(blurOverlay)
+        bottomSheet.bringToFront()
+    }
+
+    private fun bindUserContent() {
+        bindingListener.onBindView(binder)
+    }
+
+    private fun bindInternalContent() {
+        registerInternalControls()
+        registerInternalStateChangeCallback()
+    }
+
+    private fun bindConfig(config: SlateConfig, externalCallback: BottomSheetCallback?) {
+        binder.rootView.post {
+            slateBehaviour.configure(config)
+            externalCallback?.let { slateBehaviour.addCallback(it) }
+
+            val bottomSheetPaddingBottom = SlatePositioning.adjustBottomSheetPositioning(
+                bottomSheet = bottomSheet,
+                container = container
+            )
+            SlatePositioning.handleKeyboardPositioning(
+                bottomSheet = bottomSheet,
+                bottomSheetPaddingBottom = bottomSheetPaddingBottom
+            )
+        }
+    }
+
+    private fun bindSystemLevelCallbacks() {
+        binder.rootView.post {
+            backPressedCallback = createBackPressedCallbackObject()
+            lifecycleObserver = createOwnerLifecycleObserverObject()
+
+            registerBackPressedCallback()
+            registerOwnerLifecycleAwareness()
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // SETUP LEVEL REGISTER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    private fun registerInternalControls() {
+        controlComposite
+            .add(SaveButtonControl(binder.setSaveBtn))
+            .add(AddNewButtonControl(binder.setAddNewBtn))
+            .add(
+                CollapseButtonControl(
+                    collapseBtn = binder.setCollapseBtn,
+                    isCollapsible = !bottomSheetBehavior.skipCollapsed,
+                    onCollapse = { collapse() },
+                    onExpand = { expand() },
+                ))
+            .attach { hide() }
+    }
+
+    private fun registerInternalStateChangeCallback() {
+        internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
+        internalBottomSheetBehaviorCallback = createBottomSheetCallback()
+        internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.addBottomSheetCallback(it) }
+    }
+
+    private fun registerBackPressedCallback() {
+        onBackPressedDispatcher.addCallback(lifecycleOwner, backPressedCallback)
+    }
+
+    private fun registerOwnerLifecycleAwareness() {
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // BUILD LEVEL CREATE FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    private fun createBackPressedCallbackObject() = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            if (bottomSheetBehavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+                hide()
+            } else {
+                // If the sheet is already hidden, temporarily disable this callback
+                // and let the default back press behavior (or next callback in chain) proceed.
+                isEnabled = false
+                binder.rootView.post { isEnabled = true } // Re-enable for future presses
+                onBackPressedDispatcher.onBackPressed() // Delegate to the next callback
+            }
+        }
+    }
+
+    private fun createOwnerLifecycleObserverObject() = object : DefaultLifecycleObserver {
+        override fun onDestroy(owner: LifecycleOwner) {
+            super.onDestroy(owner)
+            release()
+        }
+    }
+
+    private fun createBottomSheetCallback() = object : BottomSheetCallback() {
+        override fun onStateChanged(bottomSheet: View, newState: Int) {
+            when (newState) {
+                BottomSheetBehavior.STATE_EXPANDED -> {
+                    stateTransitionStrategy.onExpanded(this@Slate)
+                    doNotifyStateChanged(BottomSheetBehavior.STATE_EXPANDED)
+                }
+
+                BottomSheetBehavior.STATE_COLLAPSED -> {
+                    stateTransitionStrategy.onCollapsed(this@Slate)
+                    doNotifyStateChanged(BottomSheetBehavior.STATE_COLLAPSED)
+                }
+
+                BottomSheetBehavior.STATE_HIDDEN -> {
+                    stateTransitionStrategy.onHidden(this@Slate)
+                    doNotifyStateChanged(BottomSheetBehavior.STATE_HIDDEN)
+                }
+
+                BottomSheetBehavior.STATE_DRAGGING,
+                BottomSheetBehavior.STATE_SETTLING,
+                BottomSheetBehavior.STATE_HALF_EXPANDED -> {
+                }
+            }
         }
 
-        // 2. Unregister system callbacks
-        backPressedCallback.remove()
-        lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
-
-        // 3. Remove internal bottom sheet callback
-        internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
-        internalBottomSheetBehaviorCallback = null
-
-        // Cleanup controls and observers
-        controlComposite.detach()
-        onStateChangeObservable.removeAllObservers()
-
-        // 5. Nullify references for garbage collection
-        _blurOverlay = null
-        _container = null
-        _binder = null
-        _slateBehaviour = null
-        internalBottomSheetBehaviorCallback = null
-        isInit = false
-
-        initializationTracker.remove(identifier)
+        override fun onSlide(bottomSheet: View, slideOffset: Float) {
+            stateTransitionStrategy.onSlide(this@Slate, slideOffset)
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
-    // PUBLIC API - STATE MANAGEMENT
+    // SIMPLE HELPER LEVEL DO FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════════
 
+    private fun doEnsureBuilt() {
+        if (!isInit) throw IllegalStateException("Slate bottom sheet is not created, build() error!")
+    }
+
+    private fun doAddObserver(observer: SlateOnStateChangeObserver) {
+        onStateChangeObservable.addObserver(observer)
+    }
+
+    private fun doNotifyStateChanged(state: Int) {
+        onStateChangeObservable.notifyStateChanged(state)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PUBLIC API
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    val isExpanded get() = slateBehaviour.isExpanded
+    val isCollapsed get() = slateBehaviour.isCollapsed
+    val isHidden get() = slateBehaviour.isHidden
+
     fun expand(): Slate<T> {
-        ensureBuilt()
+        doEnsureBuilt()
         binder.rootView.post {
             slateBehaviour.expand()
         }
@@ -193,19 +328,6 @@ class Slate<T : Slate.ViewBinder>(
             slateBehaviour.setState(state)
         }
         return this
-    }
-
-    val isExpanded get() = slateBehaviour.isExpanded
-    val isCollapsed get() = slateBehaviour.isCollapsed
-    val isHidden get() = slateBehaviour.isHidden
-
-
-    private fun ensureBuilt() {
-        if (!isInit) throw IllegalStateException("Slate bottom sheet is not created, build() error!")
-    }
-
-    private fun addObserver(observer: SlateOnStateChangeObserver) {
-        onStateChangeObservable.addObserver(observer)
     }
 
     fun blurOffSet(slideOffset: Float) {
@@ -242,134 +364,35 @@ class Slate<T : Slate.ViewBinder>(
         }
     }
 
-    private fun notifyStateChanged(state: Int) {
-        onStateChangeObservable.notifyStateChanged(state)
-    }
+    fun release() {
+        if (!isInit) return
 
-    private fun initCore() {
-        _container = hostView as ViewGroup
-        _binder = bindingListener.onBindSheet(hostView)
-        _blurOverlay = Overlay.createOverlay(
-            context = bottomSheet.context,
-            overlayColor = overlayColor,
-        ) {
-            if (isExpanded) hide()
+        // 1. Detach views from container
+        if (bottomSheet.parent === _container) {
+            _blurOverlay?.let { _container?.removeView(it) }
+            _container?.removeView(bottomSheet)
         }
-        _slateBehaviour = SlateBehaviour(BottomSheetBehavior.from(bottomSheet))
-    }
 
-    private fun initSystemLevelCallbacks() {
-        binder.rootView.post {
-            backPressedCallback = createBackPressedCallback()
-            lifecycleObserver = createOwnerLifecycleObserver()
+        // 2. Unregister system callbacks
+        backPressedCallback.remove()
+        lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
 
-            registerBackPressedCallback()
-            registerOwnerLifecycleAwareness()
-        }
-    }
-
-    private fun bindViews() {
-        (bottomSheet.parent as? ViewGroup)?.removeView(bottomSheet)
-        (blurOverlay.parent as? ViewGroup)?.removeView(blurOverlay)
-
-        // For the not configured view visibility blink!
-        bottomSheet.visibility = View.INVISIBLE
-
-        container.addView(bottomSheet)
-        container.addView(blurOverlay)
-        bottomSheet.bringToFront()
-    }
-
-    private fun bindUserContent() {
-        bindingListener.onBindView(binder)
-    }
-
-    private fun bindConfig(config: SlateConfig, externalCallback: BottomSheetCallback?) {
-        binder.rootView.post {
-            slateBehaviour.configure(config)
-            externalCallback?.let { slateBehaviour.addCallback(it) }
-
-            val bottomSheetPaddingBottom = SlatePositioning.adjustBottomSheetPositioning(
-                bottomSheet = bottomSheet,
-                container = container
-            )
-            SlatePositioning.handleKeyboardPositioning(
-                bottomSheet = bottomSheet,
-                bottomSheetPaddingBottom = bottomSheetPaddingBottom
-            )
-        }
-    }
-
-    private fun initInternalControls() {
-        controlComposite
-            .add(SaveButtonControl(binder.setSaveBtn))
-            .add(AddNewButtonControl(binder.setAddNewBtn))
-            .add(
-                CollapseButtonControl(
-                collapseBtn = binder.setCollapseBtn,
-                isCollapsible = !bottomSheetBehavior.skipCollapsed,
-                onCollapse = { collapse() },
-                onExpand = { expand() },
-            ))
-            .attach { hide() }
-    }
-
-    private fun initInternalStateChangeCallback() {
+        // 3. Remove internal bottom sheet callback
         internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
-        internalBottomSheetBehaviorCallback = object : BottomSheetCallback() {
-            override fun onStateChanged(bottomSheet: View, newState: Int) {
-                when (newState) {
-                    BottomSheetBehavior.STATE_EXPANDED -> {
-                        stateTransitionStrategy.onExpanded(this@Slate)
-                        notifyStateChanged(BottomSheetBehavior.STATE_EXPANDED)
-                    }
-                    BottomSheetBehavior.STATE_COLLAPSED -> {
-                        stateTransitionStrategy.onCollapsed(this@Slate)
-                        notifyStateChanged(BottomSheetBehavior.STATE_COLLAPSED)
-                    }
-                    BottomSheetBehavior.STATE_HIDDEN -> {
-                        stateTransitionStrategy.onHidden(this@Slate)
-                        notifyStateChanged(BottomSheetBehavior.STATE_HIDDEN)
-                    }
-                    BottomSheetBehavior.STATE_DRAGGING,
-                    BottomSheetBehavior.STATE_SETTLING,
-                    BottomSheetBehavior.STATE_HALF_EXPANDED -> {}
-                }
-            }
+        internalBottomSheetBehaviorCallback = null
 
-            override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                stateTransitionStrategy.onSlide(this@Slate, slideOffset)
-            }
-        }
-        internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.addBottomSheetCallback(it) }
-    }
+        // Cleanup controls and observers
+        controlComposite.detach()
+        onStateChangeObservable.removeAllObservers()
 
-    private fun createBackPressedCallback() = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            if (bottomSheetBehavior.state != BottomSheetBehavior.STATE_HIDDEN) {
-                hide()
-            } else {
-                // If the sheet is already hidden, temporarily disable this callback
-                // and let the default back press behavior (or next callback in chain) proceed.
-                isEnabled = false
-                binder.rootView.post { isEnabled = true } // Re-enable for future presses
-                onBackPressedDispatcher.onBackPressed() // Delegate to the next callback
-            }
-        }
-    }
+        // 5. Nullify references for garbage collection
+        _blurOverlay = null
+        _container = null
+        _binder = null
+        _slateBehaviour = null
+        internalBottomSheetBehaviorCallback = null
+        isInit = false
 
-    private fun createOwnerLifecycleObserver() = object : DefaultLifecycleObserver {
-        override fun onDestroy(owner: LifecycleOwner) {
-            super.onDestroy(owner)
-            release()
-        }
-    }
-
-    private fun registerBackPressedCallback() {
-        onBackPressedDispatcher.addCallback(lifecycleOwner, backPressedCallback)
-    }
-
-    private fun registerOwnerLifecycleAwareness() {
-        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+        initializationTracker.remove(identifier)
     }
 }

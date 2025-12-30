@@ -47,42 +47,53 @@ dependencies {
 
 ```kotlin
 class MyFragment : Fragment() {
-    private var slate: Slate<MySheetBinder>? = null
+    private var _slate: Slate<Binder>? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        slate = SlateBuilder<MySheetBinder>()
+        // Quick Way
+        
+        _slate = SlateBuilderForFragment(
+            currentInstance = _slate,
+            onBind = { hostView ->
+                hostView.inflateBinder<BottomSheetLayoutBinding, Binder> { Binder(it) }
+            },
+            onBindView = {
+                it.bind(object : Binder.OnBinderClickListener{
+                    override fun onCategorySave(categoryName: String) {
+                        TODO("Not yet implemented")
+                    }
+                })
+            }
+        )
+        
+        // With custom configuration
+
+        _slate = SlateBuilder<Binder>()
             .peekHeight(200)
             .hideable(true)
             .draggable(true)
-            .onStateChange { state: Int->
-                when (state) {
-                    BottomSheetBehavior.STATE_EXPANDED -> {
-                        // Handle expanded
-                    }
-                    BottomSheetBehavior.STATE_HIDDEN -> {
-                        // Handle hidden
-                    }
-                }
-            }
             .build(
-                currentInstance = slate,
-                hostView = binding.container,
-                lifecycleOwner = viewLifecycleOwner,
-                onBackPressedDispatcher = requireActivity().onBackPressedDispatcher,
-                bindingListener = object : Slate.BindingListener<MySheetBinder> {
-                    override fun onBindSheet(hostView: View): MySheetBinder = 
-                        hostView.inflateBinder<BottomSheetLayoutBinding, ViewBinder> { ViewBinder(it) }
-
-                    override fun onBindView(binder: MySheetBinder) = binder.bind()
-                }
-            )
-            .expand()
+            currentInstance = _slate,
+            hostView = requireView(),
+            lifecycleOwner = viewLifecycleOwner,
+            onBackPressedDispatcher = requireActivity().onBackPressedDispatcher,
+            onBind = { hostView ->
+                hostView.inflateBinder<BottomSheetLayoutBinding, Binder> { Binder(it) }
+            },
+            onBindView = {
+                it.bind(object : Binder.OnBinderClickListener{
+                    override fun onCategorySave(categoryName: String) {
+                        TODO("Not yet implemented")
+                    }
+                })
+            }
+        ).expand()
     }
 
     override fun onDestroy() {
-        slate = null
+        _slate = null
     }
 }
 ```
@@ -90,7 +101,7 @@ class MyFragment : Fragment() {
 ### Define Your ViewBinder
 
 ```kotlin
-class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
+class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
     fun bind(){
         binding.apply {
             
@@ -110,7 +121,7 @@ class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewB
             }
             
             bCtIvSave.appendClickListener({
-                onBinderAddCategoryClickListener.onSave(bCtEtName.text.toString())
+                onBinderClickListener.onSave(bCtEtName.text.toString())
                 bCtEtName.text?.clear()
             })
         }
@@ -123,7 +134,7 @@ class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewB
 ### 1. Basic Configuration
 
 ```kotlin
-val slate = SlateBuilder<MySheetBinder>()
+val slate = SlateBuilder<Binder>()
     .peekHeight(300)                    // Height when collapsed
     .fitToContents(true)                // Fit to content height
     .hideable(true)                     // Can be hidden by dragging
@@ -160,7 +171,7 @@ if (slate?.isExpanded == true) {
 #### Option A: Simple Lambda
 
 ```kotlin
-SlateBuilder<MySheetBinder>()
+SlateBuilder<Binder>()
     .onStateChange { state ->
         when (state) {
             BottomSheetBehavior.STATE_EXPANDED -> handleExpanded()
@@ -190,7 +201,7 @@ val uiObserver = object : SlateOnStateChangeObserver {
     }
 }
 
-SlateBuilder<MySheetBinder>()
+SlateBuilder<Binder>()
     .addObserver(analyticsObserver)
     .addObserver(uiObserver)
     .build(...)
@@ -199,7 +210,7 @@ SlateBuilder<MySheetBinder>()
 #### Option C: ViewBinder Callback
 
 ```kotlin
-class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
+class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
     fun bind(){
         onStateChangedFromBinder = { state ->
             // Handle state changes
@@ -213,8 +224,8 @@ class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewB
 Create a custom strategy for unique transition effects:
 
 ```kotlin
-class CustomTransitionStrategy : StateTransitionStrategy<MySheetBinder> {
-    override fun onExpanded(slate: Slate<MySheetBinder>) {
+class CustomTransitionStrategy : StateTransitionStrategy<Binder> {
+    override fun onExpanded(slate: Slate<Binder>) {
         slate.arrowDown()
         slate.blurVisible()
         // Add custom behavior
@@ -222,18 +233,18 @@ class CustomTransitionStrategy : StateTransitionStrategy<MySheetBinder> {
         vibrate()
     }
 
-    override fun onCollapsed(slate: Slate<MySheetBinder>) {
+    override fun onCollapsed(slate: Slate<Binder>) {
         slate.arrowUp()
         slate.blurHide()
         slate.binder.headerView.animate().alpha(0.5f).start()
     }
 
-    override fun onHidden(slate: Slate<MySheetBinder>) {
+    override fun onHidden(slate: Slate<Binder>) {
         slate.blurHide()
         logEvent("sheet_dismissed")
     }
 
-    override fun onSlide(slate: Slate<MySheetBinder>, slideOffset: Float) {
+    override fun onSlide(slate: Slate<Binder>, slideOffset: Float) {
         slate.blurOffSet(slideOffset)
         // Custom parallax effect
         slate.binder.backgroundView.translationY = slideOffset * 100
@@ -241,7 +252,7 @@ class CustomTransitionStrategy : StateTransitionStrategy<MySheetBinder> {
 }
 
 // Use the custom strategy
-SlateBuilder<MySheetBinder>()
+SlateBuilder<Binder>()
     .stateTransitionStrategy(CustomTransitionStrategy())
     .build(...)
 ```
@@ -261,7 +272,7 @@ val externalCallback = object : BottomSheetBehavior.BottomSheetCallback() {
     }
 }
 
-SlateBuilder<MySheetBinder>()
+SlateBuilder<Binder>()
     .bottomSheetCallback(externalCallback)
     .build(...)
 ```
@@ -272,12 +283,12 @@ Maintain single instance across configuration changes:
 
 ```kotlin
 class MyFragment : Fragment() {
-    private var slate: Slate<MySheetBinder>? = null
+    private var slate: Slate<Binder>? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        slate = SlateBuilder<MySheetBinder>()
+        slate = SlateBuilder<Binder>()
             .peekHeight(200)
             .build(
                 currentInstance = slate,  // Reuse existing instance
@@ -295,7 +306,7 @@ class MyFragment : Fragment() {
 ### Overlay Colors
 
 ```kotlin
-class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
+class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
     fun bind(){
         setOverlayColor = OverlayColor.Light  // or OverlayColor.Dark
     }
@@ -307,7 +318,7 @@ class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewB
 Slate automatically hides the sheet when these buttons are clicked:
 
 ```kotlin
-class MySheetBinder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
+class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
     fun bind(){
         binding.apply{
             setSaveBtn = saveBtn     // Auto-hides on click
@@ -435,7 +446,7 @@ slate?.expand()  // Safe to call from any thread
 
 ```kotlin
 // Make sure to call expand() after build()
-slate = SlateBuilder<MySheetBinder>()
+slate = SlateBuilder<Binder>()
     .build(...)
 .expand()  // ← Don't forget this!
 ```
@@ -454,7 +465,7 @@ slate = SlateBuilder<MySheetBinder>()
 
 ```kotlin
 // Add observer before building
-SlateBuilder<MySheetBinder>()
+SlateBuilder<Binder>()
     .onStateChange { state -> /* ... */ }  // ← Before build()
     .build(...)
 ```

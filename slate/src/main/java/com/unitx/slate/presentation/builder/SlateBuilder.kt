@@ -10,7 +10,7 @@ import com.unitx.slate.presentation.observer.SlateOnStateChangeObserver
 import com.unitx.slate.presentation.transition.DefaultStateTransitionStrategy
 import com.unitx.slate.presentation.transition.StateTransitionStrategy
 
-open class SlateBuilder<T : Slate.ViewBinder>{
+class SlateBuilder<T : Slate.ViewBinder>{
     
     companion object{
         fun <T : Slate.ViewBinder> instance(

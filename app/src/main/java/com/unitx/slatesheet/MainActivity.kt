@@ -1,7 +1,6 @@
 package com.unitx.slatesheet
 
 import android.os.Bundle
-import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -10,7 +9,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.unitx.slate.presentation.main.Slate
 import com.unitx.slate.presentation.builder.SlateBuilder
-import com.unitx.slate.presentation.utilExtension.inflateBinder
+import com.unitx.slate.presentation.builder.inflateBinder
 import com.unitx.slatesheet.databinding.ActivityMainBinding
 import com.unitx.slatesheet.databinding.SlateTesterCreateTextBinding
 
@@ -71,7 +70,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     )
                 },
-            )
+            ).expand()
     }
 
     override fun onDestroy() {

@@ -1,4 +1,4 @@
-package com.unitx.slate.presentation.helper
+package com.unitx.slate.presentation.config
 
 enum class OverlayColor(val color: Int) {
     Dark(0x99000000.toInt()),
