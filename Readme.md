@@ -45,6 +45,32 @@ dependencies {
 
 ### Basic Usage
 
+```xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:maxWidth="450dp"
+    android:background="@android:color/white"
+    android:paddingHorizontal="8dp"
+    android:paddingBottom="36dp">
+
+    <!--  Important  -->
+    <!--  app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"-->
+    <!--  Important  -->
+    
+<androidx.constraintlayout.widget.ConstraintLayout>
+
+<!--
+Some prebuild xml layouts will be provided in the future for easier bottom sheets setup. 
+-->
+```
+
 ```kotlin
 class MyFragment : Fragment() {
     private var _slateAddCategory : Slate<BinderAddCategory>? = null
@@ -492,6 +518,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - Create an [Issue](https://github.com/Unitx-in/Slate/issues)
 - Email: developer@unitx.in
+- You can contact me on the above email directly, if you have any problem using the library. 
 
 ## 🌟 Show your support
 
