@@ -1,4 +1,4 @@
-# Slate - Lifecycle-Aware Bottom Sheet Manager
+# Slate - Better Bottom Sheet Implementation
 
 A powerful, lifecycle-aware bottom sheet manager for Android that simplifies bottom sheet
 implementation with built-in blur overlays, state management, and automatic cleanup.
