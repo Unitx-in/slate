@@ -96,7 +96,7 @@ class Slate<T : Slate.ViewBinder>(
         config: SlateConfig,
         stateTransitionStrategy: StateTransitionStrategy<T>,
         externalCallback: BottomSheetCallback?,
-        observers: List<SlateOnStateChangeObserver>
+        stateChangeObservers: List<SlateOnStateChangeObserver>
         ): Slate<T>
     {
         if (isInit) {
@@ -104,12 +104,13 @@ class Slate<T : Slate.ViewBinder>(
             return this
         }
 
-        observers.forEach{ doAddObserver(it) }
+        stateChangeObservers.forEach{ doAddObserver(it) }
         doAddObserver(object :SlateOnStateChangeObserver{
             override fun onStateChanged(state: Int) {
                 onStateChangedFromBinder?.invoke(state)
             }
         })
+
         this.stateTransitionStrategy = stateTransitionStrategy
 
         bindCore()
@@ -344,7 +345,7 @@ class Slate<T : Slate.ViewBinder>(
         collapseBtn?.setState(toggled = true, animate = false)
     }
 
-    fun blurHide() {
+    fun blurOverlayHide() {
         blurOverlay.animate()
             ?.alpha(0f)
             ?.setDuration(200)
@@ -355,7 +356,7 @@ class Slate<T : Slate.ViewBinder>(
             ?.start()
     }
 
-    fun blurVisible() {
+    fun blurOverlayVisible() {
         blurOverlay.apply {
             visibility = View.VISIBLE
             isClickable = true

@@ -12,8 +12,8 @@ import com.unitx.slate.presentation.transition.StateTransitionStrategy
 
 class SlateBuilder<T : Slate.ViewBinder>{
     
-    companion object{
-        fun <T : Slate.ViewBinder> instance(
+    companion object {
+        private fun <T : Slate.ViewBinder> instance(
             currentInstance: Slate<T>?,
             hostView: View,
             lifecycleOwner: LifecycleOwner,
@@ -32,7 +32,7 @@ class SlateBuilder<T : Slate.ViewBinder>{
     private var config = SlateConfig()
     private var stateTransitionStrategy: StateTransitionStrategy<T> = DefaultStateTransitionStrategy()
     private var externalCallback: BottomSheetCallback? = null
-    private val observers = mutableListOf<SlateOnStateChangeObserver>()
+    private val stateChangeObservers = mutableListOf<SlateOnStateChangeObserver>()
 
     fun maxWidth(width: Int) = apply {
         config = config.copy(maxWidth = width)
@@ -78,16 +78,16 @@ class SlateBuilder<T : Slate.ViewBinder>{
         this.stateTransitionStrategy = strategy
     }
 
-    fun bottomSheetCallback(callback: BottomSheetCallback) = apply {
+    fun bottomSheetExternalCallback(callback: BottomSheetCallback) = apply {
         this.externalCallback = callback
     }
 
-    fun addObserver(observer: SlateOnStateChangeObserver) = apply {
-        observers.add(observer)
+    fun addStateChangeObserver(stateChangeObserver: SlateOnStateChangeObserver) = apply {
+        stateChangeObservers.add(stateChangeObserver)
     }
 
     fun onStateChange(callback: (Int) -> Unit) = apply {
-        observers.add(object : SlateOnStateChangeObserver {
+        stateChangeObservers.add(object : SlateOnStateChangeObserver {
             override fun onStateChanged(state: Int) {
                 callback(state)
             }
@@ -116,7 +116,7 @@ class SlateBuilder<T : Slate.ViewBinder>{
                 config = config,
                 stateTransitionStrategy = stateTransitionStrategy,
                 externalCallback = externalCallback,
-                observers = observers
+                stateChangeObservers = stateChangeObservers
             )
         }
     }

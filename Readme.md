@@ -220,6 +220,9 @@ SlateBuilder<Binder>()
 
 #### Option B: Multiple Observers
 
+Create state observers to update your fragment or activity ui or computations and logging with bottom sheet state changes.
+Don't use state transition strategy for the changes of your fragments. 
+
 ```kotlin
 val analyticsObserver = object : SlateOnStateChangeObserver {
     override fun onStateChanged(state: Int) {
@@ -257,8 +260,10 @@ class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(B
 
 ### 4. Custom State Transitions
 
-Create a custom strategy for unique transition effects:
-
+Create a custom strategy for unique transition effects or just to change the looks of your bottom sheet with state change:
+For example: 
+I have used arrows to show the bottom sheet state but you can use text, or other drawables to get the same effect.
+Here comes the part of custom transitions and that make it different from state observers.
 ```kotlin
 class CustomTransitionStrategy : StateTransitionStrategy<Binder> {
     override fun onExpanded(slate: Slate<Binder>) {
