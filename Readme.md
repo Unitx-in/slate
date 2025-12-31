@@ -66,6 +66,18 @@ dependencies {
     <!--  Important  -->
     <!--  app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"-->
     <!--  Important  -->
+
+    <com.unitx.slate.presentation.radioImg.RadioImage
+        android:id="@+id/b_ms_iv_collapse"
+        style="@style/ImageViewIconStyle.48_12"
+        app:drawableOff="@drawable/ic_arrow_down"
+        app:drawableOn="@drawable/ic_arrow_up"
+        app:initialState="false"
+        android:contentDescription="@string/content_collapse_bottom_sheet"
+        app:layout_constraintBottom_toBottomOf="@+id/b_ms_tv_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/b_ms_tv_title"
+    />
     
 <androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -139,7 +151,7 @@ class BinderAddCategory(private val sheetBinding: BSheetCreateTextBinding) : Sla
 
     fun bind(context: Context, onBinderAddCategoryClickListener: OnBinderAddCategoryClickListener) {
         sheetBinding.apply {
-            setCollapseBtn = null
+            setCollapseBtn = bMsIvCollapse
             setSaveBtn = bCtIvSave
             onStateChangedFromBinder = { state ->
                 // Handle state changes
