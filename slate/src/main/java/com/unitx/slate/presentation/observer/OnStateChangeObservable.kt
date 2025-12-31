@@ -1,13 +1,13 @@
 package com.unitx.slate.presentation.observer
 
-internal class SlateOnStateChangeObservable {
-    private val observers = mutableListOf<SlateOnStateChangeObserver>()
+internal class OnStateChangeObservable {
+    private val observers = mutableListOf<StateChangeObserver>()
 
-    fun addObserver(observer: SlateOnStateChangeObserver) {
+    fun addObserver(observer: StateChangeObserver) {
         observers.add(observer)
     }
 
-    fun removeObserver(observer: SlateOnStateChangeObserver) {
+    fun removeObserver(observer: StateChangeObserver) {
         observers.remove(observer)
     }
 

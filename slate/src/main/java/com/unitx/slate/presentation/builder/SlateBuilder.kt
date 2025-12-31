@@ -6,7 +6,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
 import com.unitx.slate.presentation.config.SlateConfig
 import com.unitx.slate.presentation.main.Slate
-import com.unitx.slate.presentation.observer.SlateOnStateChangeObserver
+import com.unitx.slate.presentation.observer.StateChangeObserver
 import com.unitx.slate.presentation.transition.DefaultStateTransitionStrategy
 import com.unitx.slate.presentation.transition.StateTransitionStrategy
 
@@ -31,8 +31,8 @@ class SlateBuilder<T : Slate.ViewBinder>{
 
     private var config = SlateConfig()
     private var stateTransitionStrategy: StateTransitionStrategy<T> = DefaultStateTransitionStrategy()
-    private var externalCallback: BottomSheetCallback? = null
-    private val stateChangeObservers = mutableListOf<SlateOnStateChangeObserver>()
+    private var bottomSheetCallback: BottomSheetCallback? = null
+    private val stateChangeObservers = mutableListOf<StateChangeObserver>()
 
     fun maxWidth(width: Int) = apply {
         config = config.copy(maxWidth = width)
@@ -74,20 +74,20 @@ class SlateBuilder<T : Slate.ViewBinder>{
         config = config.copy(initialState = state)
     }
 
-    fun stateTransitionStrategy(strategy: StateTransitionStrategy<T>) = apply {
+    fun addStateTransitionStrategy(strategy: StateTransitionStrategy<T>) = apply {
         this.stateTransitionStrategy = strategy
     }
 
-    fun bottomSheetExternalCallback(callback: BottomSheetCallback) = apply {
-        this.externalCallback = callback
+    fun addBottomSheetCallback(callback: BottomSheetCallback) = apply {
+        this.bottomSheetCallback = callback
     }
 
-    fun addStateChangeObserver(stateChangeObserver: SlateOnStateChangeObserver) = apply {
+    fun addStateChangeObserver(stateChangeObserver: StateChangeObserver) = apply {
         stateChangeObservers.add(stateChangeObserver)
     }
 
     fun onStateChange(callback: (Int) -> Unit) = apply {
-        stateChangeObservers.add(object : SlateOnStateChangeObserver {
+        stateChangeObservers.add(object : StateChangeObserver {
             override fun onStateChanged(state: Int) {
                 callback(state)
             }
@@ -114,9 +114,9 @@ class SlateBuilder<T : Slate.ViewBinder>{
         ).apply {
             initialize(
                 config = config,
-                stateTransitionStrategy = stateTransitionStrategy,
-                externalCallback = externalCallback,
-                stateChangeObservers = stateChangeObservers
+                externalStateTransitionStrategy = stateTransitionStrategy,
+                externalBottomSheetCallback = bottomSheetCallback,
+                fragmentStateChangeObservers = stateChangeObservers
             )
         }
     }

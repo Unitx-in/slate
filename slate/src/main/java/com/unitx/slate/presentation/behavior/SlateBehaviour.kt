@@ -26,6 +26,7 @@ internal class SlateBehaviour(private val behavior: BottomSheetBehavior<View>) {
     val isExpanded get() = behavior.state == BottomSheetBehavior.STATE_EXPANDED
     val isCollapsed get() = behavior.state == BottomSheetBehavior.STATE_COLLAPSED
     val isHidden get() = behavior.state == BottomSheetBehavior.STATE_HIDDEN
+    val isSkipCollapsed get() = behavior.skipCollapsed
     val currentState get() = behavior.state
 
     fun configure(config: SlateConfig) {

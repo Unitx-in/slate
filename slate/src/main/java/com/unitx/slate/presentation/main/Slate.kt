@@ -20,8 +20,8 @@ import com.unitx.slate.presentation.config.OverlayColor
 import com.unitx.slate.presentation.config.OverlayColorDefault
 import com.unitx.slate.presentation.utilsSingleton.Overlay
 import com.unitx.slate.presentation.utilsSingleton.SlatePositioning
-import com.unitx.slate.presentation.observer.SlateOnStateChangeObservable
-import com.unitx.slate.presentation.observer.SlateOnStateChangeObserver
+import com.unitx.slate.presentation.observer.OnStateChangeObservable
+import com.unitx.slate.presentation.observer.StateChangeObserver
 import com.unitx.slate.presentation.radioImg.RadioImage
 import com.unitx.slate.presentation.transition.DefaultStateTransitionStrategy
 import com.unitx.slate.presentation.transition.StateTransitionStrategy
@@ -61,23 +61,26 @@ class Slate<T : Slate.ViewBinder>(
     private val blurOverlay get() = _blurOverlay ?: error("Blur overlay not yet initialized. Call build() first.")
 
     private var _binder: T? = null
-    val binder get() = _binder ?: error("Binder not yet initialized. Call build() first.")
+    private val binder get() = _binder ?: error("Binder not yet initialized. Call build() first.")
 
     private var _slateBehaviour: SlateBehaviour? = null
     private val slateBehaviour get() = _slateBehaviour ?: error("BottomSheetFacade not initialized.")
 
+    private var _internalBottomSheetCallback: BottomSheetCallback? = null
+    private val internalCallback get() = _internalBottomSheetCallback ?: error("Internal Callback not initialized")
+
+    private var _externalBottomSheetCallback: BottomSheetCallback? = null
+
     private val bottomSheet get() = binder.rootView
-    private val bottomSheetBehavior get() = BottomSheetBehavior.from(bottomSheet)
     private val collapseBtn get() = binder.setCollapseBtn
     private val onStateChangedFromBinder get() = binder.onStateChangedFromBinder
     private val overlayColor get() = binder.setOverlayColor
 
     private lateinit var lifecycleObserver: DefaultLifecycleObserver
     private lateinit var backPressedCallback: OnBackPressedCallback
-    private var internalBottomSheetBehaviorCallback: BottomSheetCallback? = null
 
     private val controlComposite = SlateControlComposite()
-    private var onStateChangeObservable = SlateOnStateChangeObservable()
+    private var onStateChangeObservable = OnStateChangeObservable()
     private var stateTransitionStrategy: StateTransitionStrategy<T> = DefaultStateTransitionStrategy()
 
     private val identifier: String
@@ -95,9 +98,9 @@ class Slate<T : Slate.ViewBinder>(
 
     internal fun initialize(
         config: SlateConfig,
-        stateTransitionStrategy: StateTransitionStrategy<T>,
-        externalCallback: BottomSheetCallback?,
-        stateChangeObservers: List<SlateOnStateChangeObserver>
+        externalStateTransitionStrategy: StateTransitionStrategy<T>,
+        externalBottomSheetCallback: BottomSheetCallback?,
+        fragmentStateChangeObservers: List<StateChangeObserver>
         ): Slate<T>
     {
         if (isInit) {
@@ -105,23 +108,15 @@ class Slate<T : Slate.ViewBinder>(
             return this
         }
 
-        stateChangeObservers.forEach{ doAddObserver(it) }
-        doAddObserver(object :SlateOnStateChangeObserver{
-            override fun onStateChanged(state: Int) {
-                onStateChangedFromBinder?.invoke(state)
-            }
-        })
-
-        this.stateTransitionStrategy = stateTransitionStrategy
-
-        bindCore()
+        bindCore(
+            externalStateTransitionStrategy = externalStateTransitionStrategy,
+            fragmentStateChangeObservers = fragmentStateChangeObservers,
+            externalBottomSheetCallback = externalBottomSheetCallback
+        )
         bindViews()
         bindUserContent()
         bindInternalContent()
-        bindConfig(
-            config = config,
-            externalCallback = externalCallback
-        )
+        bindConfig(config)
         bindSystemLevelCallbacks()
         isInit = true
         return this
@@ -131,7 +126,11 @@ class Slate<T : Slate.ViewBinder>(
     // INIT LEVEL BIND FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════════
 
-    private fun bindCore() {
+    private fun bindCore(
+        externalStateTransitionStrategy: StateTransitionStrategy<T>,
+        fragmentStateChangeObservers: List<StateChangeObserver>,
+        externalBottomSheetCallback: BottomSheetCallback?
+    ) {
         _container = hostView as ViewGroup
         _binder = bindingListener.onBindSheet(hostView)
         _blurOverlay = Overlay.createOverlay(
@@ -141,6 +140,11 @@ class Slate<T : Slate.ViewBinder>(
             if (isExpanded) hide()
         }
         _slateBehaviour = SlateBehaviour(BottomSheetBehavior.from(bottomSheet))
+
+        registerStateTransitionStrategy(externalStateTransitionStrategy)
+        registerStateChangeObservers(fragmentStateChangeObservers)
+        _internalBottomSheetCallback = createBottomSheetCallback()
+        _externalBottomSheetCallback = externalBottomSheetCallback
     }
 
     private fun bindViews() {
@@ -164,10 +168,10 @@ class Slate<T : Slate.ViewBinder>(
         registerInternalStateChangeCallback()
     }
 
-    private fun bindConfig(config: SlateConfig, externalCallback: BottomSheetCallback?) {
-        binder.rootView.post {
+    private fun bindConfig(config: SlateConfig) {
+        bottomSheet.post {
             slateBehaviour.configure(config)
-            externalCallback?.let { slateBehaviour.addCallback(it) }
+            _externalBottomSheetCallback?.let { slateBehaviour.addCallback(it) }
 
             val bottomSheetPaddingBottom = SlatePositioning.adjustBottomSheetPositioning(
                 bottomSheet = bottomSheet,
@@ -182,7 +186,7 @@ class Slate<T : Slate.ViewBinder>(
     }
 
     private fun bindSystemLevelCallbacks() {
-        binder.rootView.post {
+        bottomSheet.post {
             backPressedCallback = createBackPressedCallbackObject()
             lifecycleObserver = createOwnerLifecycleObserverObject()
 
@@ -195,6 +199,25 @@ class Slate<T : Slate.ViewBinder>(
     // SETUP LEVEL REGISTER FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════════
 
+    private fun registerStateChangeObservers(fragmentStateChangeObservers: List<StateChangeObserver>) {
+        val binderStateChangeObserver = onStateChangedFromBinder?.let { observer->
+            object : StateChangeObserver {
+                override fun onStateChanged(state: Int) {
+                    observer(state)
+                }
+            }
+        }
+
+        onStateChangeObservable.apply {
+            fragmentStateChangeObservers.forEach{
+                addObserver(it)
+            }
+            binderStateChangeObserver?.let {
+                addObserver(it)
+            }
+        }
+    }
+
     private fun registerInternalControls() {
         controlComposite
             .add(SaveButtonControl(binder.setSaveBtn))
@@ -202,7 +225,7 @@ class Slate<T : Slate.ViewBinder>(
             .add(
                 CollapseButtonControl(
                     collapseBtn = binder.setCollapseBtn,
-                    isCollapsible = !bottomSheetBehavior.skipCollapsed,
+                    isCollapsible = !slateBehaviour.isSkipCollapsed,
                     onCollapse = { collapse() },
                     onExpand = { expand() },
                 ))
@@ -210,9 +233,8 @@ class Slate<T : Slate.ViewBinder>(
     }
 
     private fun registerInternalStateChangeCallback() {
-        internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
-        internalBottomSheetBehaviorCallback = createBottomSheetCallback()
-        internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.addBottomSheetCallback(it) }
+        internalCallback.let { slateBehaviour.removeCallback(it) }
+        internalCallback.let { slateBehaviour.addCallback(it) }
     }
 
     private fun registerBackPressedCallback() {
@@ -223,19 +245,23 @@ class Slate<T : Slate.ViewBinder>(
         lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
     }
 
+    private fun registerStateTransitionStrategy(strategy: StateTransitionStrategy<T>) {
+        stateTransitionStrategy = strategy
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════════
     // BUILD LEVEL CREATE FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════════
 
     private fun createBackPressedCallbackObject() = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
-            if (bottomSheetBehavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+            if (slateBehaviour.currentState != BottomSheetBehavior.STATE_HIDDEN) {
                 hide()
             } else {
                 // If the sheet is already hidden, temporarily disable this callback
                 // and let the default back press behavior (or next callback in chain) proceed.
                 isEnabled = false
-                binder.rootView.post { isEnabled = true } // Re-enable for future presses
+                bottomSheet.post { isEnabled = true } // Re-enable for future presses
                 onBackPressedDispatcher.onBackPressed() // Delegate to the next callback
             }
         }
@@ -286,10 +312,6 @@ class Slate<T : Slate.ViewBinder>(
         if (!isInit) throw IllegalStateException("Slate bottom sheet is not created, build() error!")
     }
 
-    private fun doAddObserver(observer: SlateOnStateChangeObserver) {
-        onStateChangeObservable.addObserver(observer)
-    }
-
     private fun doNotifyStateChanged(state: Int) {
         onStateChangeObservable.notifyStateChanged(state)
     }
@@ -304,28 +326,28 @@ class Slate<T : Slate.ViewBinder>(
 
     fun expand(): Slate<T> {
         doEnsureBuilt()
-        binder.rootView.post {
+        bottomSheet.post {
             slateBehaviour.expand()
         }
         return this
     }
 
     fun collapse(): Slate<T> {
-        binder.rootView.post {
+        bottomSheet.post {
             slateBehaviour.collapse()
         }
         return this
     }
 
     fun hide(): Slate<T> {
-        binder.rootView.post {
+        bottomSheet.post {
             slateBehaviour.hide()
         }
         return this
     }
 
     fun setState(state: Int): Slate<T> {
-        binder.rootView.post {
+        bottomSheet.post {
             slateBehaviour.setState(state)
         }
         return this
@@ -379,8 +401,8 @@ class Slate<T : Slate.ViewBinder>(
         lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
 
         // 3. Remove internal bottom sheet callback
-        internalBottomSheetBehaviorCallback?.let { bottomSheetBehavior.removeBottomSheetCallback(it) }
-        internalBottomSheetBehaviorCallback = null
+        slateBehaviour.removeCallback(internalCallback)
+        _externalBottomSheetCallback?.let { slateBehaviour.removeCallback(it) }
 
         // Cleanup controls and observers
         controlComposite.detach()
@@ -391,7 +413,8 @@ class Slate<T : Slate.ViewBinder>(
         _container = null
         _binder = null
         _slateBehaviour = null
-        internalBottomSheetBehaviorCallback = null
+        _internalBottomSheetCallback = null
+        _externalBottomSheetCallback = null
         isInit = false
 
         initializationTracker.remove(identifier)
