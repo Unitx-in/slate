@@ -175,6 +175,15 @@ class BinderAddCategory(private val sheetBinding: BSheetCreateTextBinding) : Sla
 }
 ```
 
+```kotlin
+// You can update the data of bottom sheet by just creating a rebind function in your ViewBinder
+// and access it anywhere you can access the slate variable
+        _slateAddCategory?.apply {
+            binder.rebind(someDataThatNeedsToBeUpdated)
+            expand()
+        }
+```
+
 ## 📖 Usage Examples
 
 ### 1. Basic Configuration

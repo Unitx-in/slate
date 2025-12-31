@@ -61,7 +61,8 @@ class Slate<T : Slate.ViewBinder>(
     private val blurOverlay get() = _blurOverlay ?: error("Blur overlay not yet initialized. Call build() first.")
 
     private var _binder: T? = null
-    private val binder get() = _binder ?: error("Binder not yet initialized. Call build() first.")
+    // Needs to be public for the rebinding logic
+    val binder get() = _binder ?: error("Binder not yet initialized. Call build() first.")
 
     private var _slateBehaviour: SlateBehaviour? = null
     private val slateBehaviour get() = _slateBehaviour ?: error("BottomSheetFacade not initialized.")
