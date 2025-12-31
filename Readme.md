@@ -220,8 +220,21 @@ SlateBuilder<Binder>()
 
 #### Option B: Multiple Observers
 
-Create state observers to update your fragment or activity ui or computations and logging with bottom sheet state changes.
-Don't use state transition strategy for the changes of your fragments. 
+Use state observers to react to Bottom Sheet state changes and update your Fragment or Activity logic. Observers are ideal for handling UI visibility, business logic, side effects, and logging.
+
+⚠️ Do not use the state transition strategy for Fragment or Activity changes.
+State transitions are meant for visual animations and appearance changes within the Bottom Sheet itself, not for external UI or logic updates.
+
+Use state observers to:
+
+✅ Hide or show a Fragment’s bottom panel
+✅ Display toast messages
+✅ Show or hide the FAB
+✅ Update the toolbar title
+✅ Pause or resume a video player
+✅ Log analytics or state events
+
+State observers keep your application logic clean, predictable, and decoupled from animation-driven transitions.
 
 ```kotlin
 val analyticsObserver = object : SlateOnStateChangeObserver {
@@ -260,10 +273,21 @@ class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(B
 
 ### 4. Custom State Transitions
 
-Create a custom strategy for unique transition effects or just to change the looks of your bottom sheet with state change:
-For example: 
-I have used arrows to show the bottom sheet state but you can use text, or other drawables to get the same effect.
-Here comes the part of custom transitions and that make it different from state observers.
+You can create a custom transition strategy to define unique visual behaviors when the Bottom Sheet changes state. This approach allows you to go beyond default state observers and design richer, more expressive UI transitions.
+
+For example, in this implementation, arrows are used to indicate the Bottom Sheet state. However, you are not limited to arrows—you can replace them with text labels, icons, or any other drawable to achieve the same effect.
+
+This is where state-based transitions come into play, making the behavior more flexible and visually distinct from simple state listeners.
+
+Use state transitions to handle:
+
+✅ Switching indicators (e.g., Arrow → Text: “Open” / “Close”)
+✅ Custom blur animation timing and interpolation
+✅ Header animations synchronized with sheet movement
+✅ Dynamic button color changes and interaction behavior
+
+State transitions give you full control over how your Bottom Sheet looks and feels as it moves between states, resulting in smoother and more intentional user experiences.
+
 ```kotlin
 class CustomTransitionStrategy : StateTransitionStrategy<Binder> {
     override fun onExpanded(slate: Slate<Binder>) {
