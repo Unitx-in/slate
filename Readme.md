@@ -373,7 +373,14 @@ class MyFragment : Fragment() {
 ```kotlin
 class Binder(private val binding: BottomSheetLayoutBinding) : Slate.ViewBinder(BottomSheetLayoutBinding.root) {
     fun bind(){
-        setOverlayColor = OverlayColor.Light  // or OverlayColor.Dark
+        setOverlayColor = OverlayColorDefault.Light  // or OverlayColor.Dark
+        
+        // give your own overlay color
+
+        setOverlayColor = object : OverlayColor {
+            override val color: Int
+                get() = ContextCompat.getColor(rootView.context, R.color.themeVeryLightBlueColor)
+        }
     }
 }
 ```

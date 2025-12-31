@@ -3,11 +3,12 @@ package com.unitx.slate.presentation.utilsSingleton
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
-import com.unitx.slate.presentation.main.Slate.Companion.Tags
 import com.unitx.slate.presentation.config.OverlayColor
+import com.unitx.slate.presentation.main.Slate.Companion.Tags
+import com.unitx.slate.presentation.config.OverlayColorDefault
 
 
-internal object Overlay {
+internal object Overlay{
     fun createOverlay(
         context: Context,
         overlayColor: OverlayColor,

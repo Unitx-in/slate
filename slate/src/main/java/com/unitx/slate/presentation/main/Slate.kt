@@ -17,6 +17,7 @@ import com.unitx.slate.presentation.controls.impl.SaveButtonControl
 import com.unitx.slate.presentation.controls.SlateControlComposite
 import com.unitx.slate.presentation.behavior.SlateBehaviour
 import com.unitx.slate.presentation.config.OverlayColor
+import com.unitx.slate.presentation.config.OverlayColorDefault
 import com.unitx.slate.presentation.utilsSingleton.Overlay
 import com.unitx.slate.presentation.utilsSingleton.SlatePositioning
 import com.unitx.slate.presentation.observer.SlateOnStateChangeObservable
@@ -49,7 +50,7 @@ class Slate<T : Slate.ViewBinder>(
         var setSaveBtn: ImageView? = null
         var setCollapseBtn: RadioImage? = null
         var setAddNewBtn: View? = null
-        var setOverlayColor: OverlayColor = OverlayColor.Light
+        var setOverlayColor: OverlayColor = OverlayColorDefault.Light
         var onStateChangedFromBinder: ((Int) -> Unit)? = null
     }
 

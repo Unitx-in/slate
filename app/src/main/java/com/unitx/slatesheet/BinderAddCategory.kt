@@ -1,6 +1,7 @@
 package com.unitx.slatesheet
 
 import androidx.core.content.ContextCompat
+import com.unitx.slate.presentation.config.OverlayColor
 import com.unitx.slate.presentation.utilExtension.appendClickListener
 import com.unitx.slate.presentation.main.Slate
 import com.unitx.slatesheet.databinding.SlateTesterCreateTextBinding
